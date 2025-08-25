@@ -10,6 +10,7 @@ def url_to_df(
     offset,
     name_offset,
     table_id="jetson-prod-module-table",
+    nano=False,
 ):
     r = requests.get(url)
     r.raise_for_status()
@@ -30,8 +31,12 @@ def url_to_df(
                 #     case "Camera" | "CSI Camera":
                 #         label = "Camera"
             else:
-                content.extend(int(col.get("colspan", 1)) * [col.get_text()])
+                if nano:
+                    content.append(col.get_text())
+                else:
+                    content.extend(int(col.get("colspan", 1)) * [col.get_text()])
         data[label] = content
+    print(data)
     return pd.DataFrame(data)
 
 
@@ -52,7 +57,20 @@ def main():
         name_offset=0,
         table_id="jetson-xavier-table",
     )
-    pd.concat([orin, thor, xavier]).to_excel("jetson.xlsx")
+    tx2 = url_to_df(
+        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-tx2/",
+        offset=1,
+        name_offset=0,
+        table_id="jetson-tx2-table",
+    )
+    nano = url_to_df(
+        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-nano/product-development/",
+        offset=0,
+        name_offset=1,
+        table_id="jetson-tx2-table",
+        nano=True,
+    )
+    pd.concat([orin, thor, xavier, tx2, nano]).to_excel("jetson.xlsx")
 
 
 if __name__ == "__main__":
