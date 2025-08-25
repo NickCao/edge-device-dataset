@@ -73,7 +73,7 @@ def main():
         table_id="jetson-tx2-table",
         nano=True,
     )
-    jetson = pd.concat([orin, thor, xavier, tx2, nano])
+    jetson = pd.concat([orin, thor, xavier, tx2, nano]).reset_index(drop=True)
     jetson.to_csv("jetson.csv", sep="\t")
     jetson.to_excel("jetson.xlsx")
 
