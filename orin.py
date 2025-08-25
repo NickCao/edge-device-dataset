@@ -25,11 +25,11 @@ def url_to_df(
         for ic, col in enumerate(row.find_all("td")):
             if ic == 0:
                 label = col.get_text().rstrip("*")
-                # match label:
+                match label:
+                    case "Camera" | "CSI Camera":
+                        label = "Camera"
                 #     case "Vision Accelerator" | "DL Accelerator":
                 #         label = "Accelerator"
-                #     case "Camera" | "CSI Camera":
-                #         label = "Camera"
             else:
                 if nano:
                     content.append(col.get_text())
