@@ -36,7 +36,6 @@ def url_to_df(
                 else:
                     content.extend(int(col.get("colspan", 1)) * [col.get_text()])
         data[label] = content
-    print(data)
     return pd.DataFrame(data)
 
 
@@ -70,7 +69,9 @@ def main():
         table_id="jetson-tx2-table",
         nano=True,
     )
-    pd.concat([orin, thor, xavier, tx2, nano]).to_excel("jetson.xlsx")
+    jetson = pd.concat([orin, thor, xavier, tx2, nano])
+    jetson.to_csv("jetson.csv", sep="\t")
+    jetson.to_excel("jetson.xlsx")
 
 
 if __name__ == "__main__":
