@@ -19,12 +19,14 @@ def url_to_df(
     data = OrderedDict()
     rows = iter(table.find_all("tr"))
     consume(rows, offset)
-    data["Name"] = [col.get_text() for col in next(rows).find_all("td")][name_offset:]
+    data["Name"] = [col.get_text().strip() for col in next(rows).find_all("td")][
+        name_offset:
+    ]
     for row in rows:
         content = []
         for ic, col in enumerate(row.find_all("td")):
             if ic == 0:
-                label = col.get_text().rstrip("*")
+                label = col.get_text().strip().rstrip("*")
                 match label:
                     case "Camera" | "CSI Camera":
                         label = "Camera"
@@ -32,9 +34,11 @@ def url_to_df(
                 #         label = "Accelerator"
             else:
                 if nano:
-                    content.append(col.get_text())
+                    content.append(col.get_text().strip())
                 else:
-                    content.extend(int(col.get("colspan", 1)) * [col.get_text()])
+                    content.extend(
+                        int(col.get("colspan", 1)) * [col.get_text().strip()]
+                    )
         data[label] = content
     return pd.DataFrame(data)
 
