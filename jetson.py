@@ -167,7 +167,7 @@ def main():
     jetson["GPU"] = jetson["GPU"].apply(normalize_gpu)
     jetson["Memory"] = jetson["Memory"].apply(normalize_memory)
     jetson.to_csv("jetson.csv", sep="\t")
-    jetson.to_excel("jetson.xlsx")
+    jetson.to_excel("jetson.xlsx", sheet_name="Jetson", freeze_panes=(1, 2))
 
 
 if __name__ == "__main__":
