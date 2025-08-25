@@ -5,6 +5,20 @@ import pandas as pd
 from collections import OrderedDict
 
 
+def normalize_flops(flops):
+    flops, unit = flops.split(maxsplit=1)
+    match unit:
+        case "TOPS" | "TOPs" | "TFLOPS":
+            unit = "TFLOPS"
+        case "GFLOPS":
+            unit = "GFLOPS"
+        case "TFLOPS (FP4—Sparse)":
+            unit = "TFLOPS (FP4-Sparse)"
+        case _:
+            raise NotImplementedError
+    return f"{flops} {unit}"
+
+
 def url_to_df(
     url,
     offset,
@@ -44,38 +58,41 @@ def url_to_df(
 
 
 def main():
-    orin = url_to_df(
-        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/",
-        offset=1,
-        name_offset=0,
-    )
-    thor = url_to_df(
-        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/",
-        offset=0,
-        name_offset=1,
-    )
-    xavier = url_to_df(
-        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-xavier-series/",
-        offset=1,
-        name_offset=0,
-        table_id="jetson-xavier-table",
-    )
-    tx2 = url_to_df(
-        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-tx2/",
-        offset=1,
-        name_offset=0,
-        table_id="jetson-tx2-table",
-    )
-    nano = url_to_df(
-        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-nano/product-development/",
-        offset=0,
-        name_offset=1,
-        table_id="jetson-tx2-table",
-        nano=True,
-    )
-    jetson = pd.concat([orin, thor, xavier, tx2, nano]).reset_index(drop=True)
-    jetson.to_csv("jetson.csv", sep="\t")
-    jetson.to_excel("jetson.xlsx")
+    # orin = url_to_df(
+    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/",
+    #     offset=1,
+    #     name_offset=0,
+    # )
+    # thor = url_to_df(
+    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/",
+    #     offset=0,
+    #     name_offset=1,
+    # )
+    # xavier = url_to_df(
+    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-xavier-series/",
+    #     offset=1,
+    #     name_offset=0,
+    #     table_id="jetson-xavier-table",
+    # )
+    # tx2 = url_to_df(
+    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-tx2/",
+    #     offset=1,
+    #     name_offset=0,
+    #     table_id="jetson-tx2-table",
+    # )
+    # nano = url_to_df(
+    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-nano/product-development/",
+    #     offset=0,
+    #     name_offset=1,
+    #     table_id="jetson-tx2-table",
+    #     nano=True,
+    # )
+    # jetson = pd.concat([orin, thor, xavier, tx2, nano]).reset_index(drop=True)
+    # jetson.to_csv("jetson.csv", sep="\t")
+    # jetson.to_excel("jetson.xlsx")
+    jetson = pd.read_excel("jetson.xlsx")
+    jetson["AI Performance"] = jetson["AI Performance"].apply(normalize_flops)
+    print(jetson["AI Performance"])
 
 
 if __name__ == "__main__":
