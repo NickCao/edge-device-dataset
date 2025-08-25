@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from more_itertools import consume
 import requests
 import pandas as pd
+import re
 from collections import OrderedDict
 
 
@@ -17,6 +18,34 @@ def normalize_flops(flops):
         case _:
             raise NotImplementedError
     return f"{flops} {unit}"
+
+
+gpu_re = re.compile(
+    r"^(?P<core>\d+)-core\s+"
+    r"NVIDIA\s+"
+    r"(?P<arch>.+?)(?:\s+architecture)?\s+"
+    r"GPU"
+    r"(?:\s+with\s+(?P<tensor>\d+)(?:\s+(?P<tensor_gen>[\w-]+))?\s+Tensor\s+Cores)?"
+    r"(?P<extra>.*)$"
+)
+
+
+def normalize_gpu(gpu):
+    match = gpu_re.match(gpu)
+    core = int(match.group("core"))
+    arch = match.group("arch").rstrip("™").removesuffix(" c")
+    tensor_gen = match.group("tensor_gen")
+    tensor = int(match.group("tensor") or 0)
+    extra = match.group("extra") or ""
+    gpu = f"{core}-core {arch}"
+    if tensor > 0:
+        if tensor_gen:
+            gpu += f" with {tensor} {tensor_gen} tensor cores"
+        else:
+            gpu += f" with {tensor} tensor cores"
+    if extra:
+        gpu += f" and {extra.strip()}"
+    return gpu
 
 
 def url_to_df(
@@ -58,41 +87,40 @@ def url_to_df(
 
 
 def main():
-    # orin = url_to_df(
-    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/",
-    #     offset=1,
-    #     name_offset=0,
-    # )
-    # thor = url_to_df(
-    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/",
-    #     offset=0,
-    #     name_offset=1,
-    # )
-    # xavier = url_to_df(
-    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-xavier-series/",
-    #     offset=1,
-    #     name_offset=0,
-    #     table_id="jetson-xavier-table",
-    # )
-    # tx2 = url_to_df(
-    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-tx2/",
-    #     offset=1,
-    #     name_offset=0,
-    #     table_id="jetson-tx2-table",
-    # )
-    # nano = url_to_df(
-    #     "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-nano/product-development/",
-    #     offset=0,
-    #     name_offset=1,
-    #     table_id="jetson-tx2-table",
-    #     nano=True,
-    # )
-    # jetson = pd.concat([orin, thor, xavier, tx2, nano]).reset_index(drop=True)
-    # jetson.to_csv("jetson.csv", sep="\t")
-    # jetson.to_excel("jetson.xlsx")
-    jetson = pd.read_excel("jetson.xlsx")
+    orin = url_to_df(
+        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/",
+        offset=1,
+        name_offset=0,
+    )
+    thor = url_to_df(
+        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/",
+        offset=0,
+        name_offset=1,
+    )
+    xavier = url_to_df(
+        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-xavier-series/",
+        offset=1,
+        name_offset=0,
+        table_id="jetson-xavier-table",
+    )
+    tx2 = url_to_df(
+        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-tx2/",
+        offset=1,
+        name_offset=0,
+        table_id="jetson-tx2-table",
+    )
+    nano = url_to_df(
+        "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-nano/product-development/",
+        offset=0,
+        name_offset=1,
+        table_id="jetson-tx2-table",
+        nano=True,
+    )
+    jetson = pd.concat([orin, thor, xavier, tx2, nano]).reset_index(drop=True)
     jetson["AI Performance"] = jetson["AI Performance"].apply(normalize_flops)
-    print(jetson["AI Performance"])
+    jetson["GPU"] = jetson["GPU"].apply(normalize_gpu)
+    jetson.to_csv("jetson.csv", sep="\t")
+    jetson.to_excel("jetson.xlsx")
 
 
 if __name__ == "__main__":
