@@ -7,8 +7,8 @@ def main():
         "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/"
     )
     r.raise_for_status()
-    s = BeautifulSoup(r.text)
-    print(s)
+    s = BeautifulSoup(r.text, features="html.parser")
+    print(s.find(id="jetson-prod-module-table"))
 
 
 if __name__ == "__main__":
