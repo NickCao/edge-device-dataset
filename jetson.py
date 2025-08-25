@@ -169,6 +169,11 @@ def main():
     jetson.to_csv("jetson.csv", sep="\t")
     jetson.to_excel("jetson.xlsx", sheet_name="Jetson", freeze_panes=(1, 2))
 
+    jetson_tldr = jetson[["Name", "AI Performance", "Memory", "Power", "Price"]]
+    jetson_tldr.to_excel(
+        "jetson_tldr.xlsx", sheet_name="Jetson TLDR", freeze_panes=(1, 2)
+    )
+
 
 if __name__ == "__main__":
     main()
