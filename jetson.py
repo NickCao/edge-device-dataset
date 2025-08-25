@@ -10,7 +10,7 @@ prices = pd.DataFrame.from_records(
         {"Name": "Jetson AGX Orin Developer Kit", "Price": 1999},
         {"Name": "Jetson AGX Orin 64GB", "Price": 1799},
         {"Name": "Jetson AGX Orin Industrial", "Price": 2349},
-        {"Name": "Jetson AGX Orin 32GB", "Price": None},
+        {"Name": "Jetson AGX Orin 32GB", "Price": 999},
         {"Name": "Jetson Orin NX 16GB", "Price": 699},
         {"Name": "Jetson Orin NX 8GB", "Price": 479},
         {"Name": "Jetson Orin Nano Super Developer Kit", "Price": 249},
@@ -25,9 +25,9 @@ prices = pd.DataFrame.from_records(
         {"Name": "Jetson Xavier NX (16GB)", "Price": 579},
         {"Name": "Jetson Xavier NX (8GB)", "Price": 479},
         {"Name": "Jetson TX2i", "Price": 849},
-        {"Name": "Jetson TX2", "Price": 199},
+        {"Name": "Jetson TX2", "Price": None},
         {"Name": "Jetson TX2 4GB", "Price": None},
-        {"Name": "Jetson TX2 NX", "Price": None},
+        {"Name": "Jetson TX2 NX", "Price": 199},
         {"Name": "Jetson Nano", "Price": 129},
     ]
 )
