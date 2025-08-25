@@ -75,6 +75,24 @@ def normalize_gpu(gpu):
     return gpu
 
 
+memory_re = re.compile(
+    r"^(\d+)\s*GB\s+(\d+)-bit\s+(LPDDR\d[xX]?)\s*(\(.*?ECC.*?\))?\s*([\d.]+)\s*GB/s$"
+)
+
+
+def normalize_memory(memory):
+    match = memory_re.match(memory)
+    size = match.group(1)
+    width = match.group(2)
+    gen = match.group(3)
+    ecc = match.group(4) is not None
+    speed = float(match.group(5))
+    memory = f"{size} GB {width}-bit {gen} @ {speed} GB/s"
+    if ecc:
+        memory += " ECC"
+    return memory
+
+
 def url_to_df(
     url,
     offset,
@@ -147,6 +165,7 @@ def main():
     jetson = jetson.merge(prices, on="Name")
     jetson["AI Performance"] = jetson["AI Performance"].apply(normalize_flops)
     jetson["GPU"] = jetson["GPU"].apply(normalize_gpu)
+    jetson["Memory"] = jetson["Memory"].apply(normalize_memory)
     jetson.to_csv("jetson.csv", sep="\t")
     jetson.to_excel("jetson.xlsx")
 
