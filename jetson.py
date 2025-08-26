@@ -35,16 +35,20 @@ prices = pd.DataFrame.from_records(
 
 def normalize_flops(flops):
     flops, unit = flops.split(maxsplit=1)
+    flops = float(flops)
     match unit:
-        case "TOPS" | "TOPs" | "TFLOPS":
-            unit = "TFLOPS"
+        case "TOPS" | "TOPs":
+            unit = "TOPS (INT8-Sparse)"
+        case "TFLOPS":
+            unit = "TFLOPS (FP16-Dense)"
         case "GFLOPS":
-            unit = "GFLOPS"
+            flops /= 1000
+            unit = "TFLOPS (FP16-Dense)"
         case "TFLOPS (FP4—Sparse)":
             unit = "TFLOPS (FP4-Sparse)"
         case _:
             raise NotImplementedError
-    return f"{flops} {unit}"
+    return f"{flops:g} {unit}"
 
 
 gpu_re = re.compile(
