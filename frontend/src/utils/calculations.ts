@@ -1,4 +1,20 @@
-import type { GPUSpecs, ModelSpecs, CalculationResults } from '../types/calculator';
+import type { GPUSpecs, ModelSpecs, CalculationResults, QuantizationInfo } from '../types/calculator';
+import { QUANTIZATION_OPTIONS } from '../types/calculator';
+
+/**
+ * Get quantization information for a given quantization type
+ */
+function getQuantizationInfo(quantization: string): QuantizationInfo {
+  return QUANTIZATION_OPTIONS.find(q => q.name === quantization) || QUANTIZATION_OPTIONS[1]; // Default to FP16
+}
+
+/**
+ * Calculate model size in bytes based on parameters and quantization
+ */
+function calculateModelSizeBytes(model: ModelSpecs): number {
+  const quantInfo = getQuantizationInfo(model.quantization);
+  return model.parameters * 1e9 * quantInfo.bytesPerParameter;
+}
 
 /**
  * Calculate the operations-to-byte ratio of a GPU
@@ -40,10 +56,12 @@ export function calculateArithmeticIntensity(model: ModelSpecs): number {
 export function calculatePrefillTime(gpu: GPUSpecs, model: ModelSpecs): number {
   // Prefill time = number of tokens * (number of parameters * 2 FLOP) / compute bandwidth
   // Factor of 2 accounts for forward pass operations
+  // Quantization affects compute performance
+  const quantInfo = getQuantizationInfo(model.quantization);
   const totalFlops = model.promptTokens * (model.parameters * 1e9) * 2;
-  const computeFlops = gpu.computeBandwidth * 1e12;
+  const effectiveComputeFlops = gpu.computeBandwidth * 1e12 * quantInfo.computeMultiplier;
   
-  return (totalFlops / computeFlops) * 1000; // Convert to milliseconds
+  return (totalFlops / effectiveComputeFlops) * 1000; // Convert to milliseconds
 }
 
 /**
@@ -52,8 +70,8 @@ export function calculatePrefillTime(gpu: GPUSpecs, model: ModelSpecs): number {
  */
 export function calculateTimePerToken(gpu: GPUSpecs, model: ModelSpecs): number {
   // Time per token = model size in bytes / memory bandwidth
-  // Model size = parameters * 2 bytes (FP16)
-  const modelSizeBytes = model.parameters * 1e9 * 2;
+  // Model size depends on quantization
+  const modelSizeBytes = calculateModelSizeBytes(model);
   const memoryBytesPerSecond = gpu.memoryBandwidth * 1e9;
   
   return (modelSizeBytes / memoryBytesPerSecond) * 1000; // Convert to milliseconds

@@ -52,42 +52,44 @@ export const AIModelCalculator: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Input Section */}
-          <div className="lg:col-span-1 space-y-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Cpu className="w-4 h-4" />
-                  GPU
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-2">
-                <GPUSelector
-                  selectedGPU={selectedGPU}
-                  onGPUChange={setSelectedGPU}
-                />
-              </CardContent>
-            </Card>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Cpu className="w-4 h-4" />
+                    GPU
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <GPUSelector
+                    selectedGPU={selectedGPU}
+                    onGPUChange={setSelectedGPU}
+                  />
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Zap className="w-4 h-4" />
-                  Model
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-2">
-                <ModelInputs
-                  modelSpecs={modelSpecs}
-                  onModelChange={setModelSpecs}
-                />
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Zap className="w-4 h-4" />
+                    Model
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <ModelInputs
+                    modelSpecs={modelSpecs}
+                    onModelChange={setModelSpecs}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Results Section */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="space-y-4">
             {results && (
               <>
                 <Card>

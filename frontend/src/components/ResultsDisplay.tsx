@@ -7,7 +7,7 @@ interface ResultsDisplayProps {
   results: CalculationResults;
 }
 
-export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) => {
+export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
   const formatTime = (ms: number): string => {
     if (ms < 1000) return `${ms.toFixed(1)}ms`;
     return `${(ms / 1000).toFixed(2)}s`;

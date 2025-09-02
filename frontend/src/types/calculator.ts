@@ -11,6 +11,16 @@ export interface ModelSpecs {
   batchSize: number;
   promptTokens: number;
   outputTokens: number;
+  quantization: QuantizationType;
+}
+
+export type QuantizationType = 'FP32' | 'FP16' | 'INT8' | 'INT4';
+
+export interface QuantizationInfo {
+  name: QuantizationType;
+  bytesPerParameter: number;
+  description: string;
+  computeMultiplier: number; // Performance multiplier for compute operations
 }
 
 export interface CalculationResults {
@@ -28,6 +38,33 @@ export interface ComparisonResult {
   gpu: GPUSpecs;
   results: CalculationResults;
 }
+
+export const QUANTIZATION_OPTIONS: QuantizationInfo[] = [
+  {
+    name: 'FP32',
+    bytesPerParameter: 4,
+    description: '32-bit floating point - highest precision, largest size',
+    computeMultiplier: 0.5, // Slower than FP16
+  },
+  {
+    name: 'FP16',
+    bytesPerParameter: 2,
+    description: '16-bit floating point - good precision/performance balance',
+    computeMultiplier: 1.0, // Baseline
+  },
+  {
+    name: 'INT8',
+    bytesPerParameter: 1,
+    description: '8-bit integer - smaller size, slight quality loss',
+    computeMultiplier: 2.0, // Faster compute
+  },
+  {
+    name: 'INT4',
+    bytesPerParameter: 0.5,
+    description: '4-bit integer - smallest size, noticeable quality loss',
+    computeMultiplier: 4.0, // Much faster compute
+  },
+];
 
 export const COMMON_GPUS: GPUSpecs[] = [
   // Server/Datacenter GPUs
@@ -167,4 +204,5 @@ export const DEFAULT_MODEL: ModelSpecs = {
   batchSize: 1,
   promptTokens: 350,
   outputTokens: 150,
+  quantization: 'FP16',
 };
