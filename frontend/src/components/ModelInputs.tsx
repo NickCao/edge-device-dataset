@@ -30,6 +30,22 @@ const COMMON_MODELS = [
     nLayers: 32,          // number of transformer layers
     nHeads: 32           // number of attention heads (d_model = d_head * n_heads = 128 * 32 = 4096)
   },
+  {
+    name: 'Llama 2 13B', 
+    parameters: 13, 
+    sequenceLength: 4096, 
+    headDimension: 128,
+    nLayers: 40,
+    nHeads: 40
+  },
+  {
+    name: 'Llama 2 70B', 
+    parameters: 70, 
+    sequenceLength: 4096, 
+    headDimension: 128,
+    nLayers: 64,
+    nHeads: 80
+  },
   { 
     name: 'Custom', 
     parameters: 0, 

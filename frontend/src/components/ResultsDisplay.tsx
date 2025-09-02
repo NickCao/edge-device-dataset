@@ -6,6 +6,7 @@ import {
   CardContent,
   Paper,
   Alert,
+  Divider,
 } from '@mui/material';
 import {
   Warning as WarningIcon,
@@ -198,6 +199,9 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
         </Typography>
       </Alert>
 
+      {/* Divider */}
+      <Divider sx={{ my: 2 }} />
+
       {/* Performance Estimation Notice */}
       <Alert severity="info" sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -206,7 +210,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
               Performance Estimation Notice
             </Typography>
             <Typography variant="body2" sx={{ mb: 1 }}>
-              These performance numbers are <strong>theoretical estimates</strong> based on the following assumptions:
+              These performance numbers below are <strong>theoretical estimates</strong> based on the following assumptions:
             </Typography>
             <Box component="ul" sx={{ m: 0, pl: 2, '& li': { mb: 0.5 } }}>
               <li>
