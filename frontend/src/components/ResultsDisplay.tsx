@@ -60,20 +60,24 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <MemoryIcon sx={{ fontSize: 18 }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            Memory Usage
+            Total Memory Usage
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
           <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            {results.modelSizeGB.toFixed(1)} GB
+            {results.totalMemoryUsedGB.toFixed(1)} GB
           </Typography>
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
             {results.memoryUtilization.toFixed(1)}%
           </Typography>
         </Box>
         <Typography variant="caption" sx={{ opacity: 0.9 }}>
-          Model size + overhead / {gpu.memorySize} GB total GPU memory
+          Model + KV cache + overhead / {gpu.memorySize} GB total GPU memory
         </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, opacity: 0.8 }}>
+          <Typography variant="caption">Model: {results.modelSizeGB.toFixed(1)} GB</Typography>
+          <Typography variant="caption">KV Cache: {(results.currentKVCacheGB * 1024).toFixed(0)} MB</Typography>
+        </Box>
       </Paper>
 
       {/* KV Cache Analysis */}
@@ -90,7 +94,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
               Per Token
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              {(results.kvCachePerTokenGB * 1024 * 1024).toFixed(2)} MB
+              {(results.kvCachePerTokenGB * 1024).toFixed(2)} MB
             </Typography>
           </Box>
           <Box>

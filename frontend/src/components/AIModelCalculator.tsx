@@ -205,6 +205,7 @@ export const AIModelCalculator: React.FC = () => {
                     </Box>
                     <ResultsDisplay 
                       gpu={selectedGPU}
+                      model={modelSpecs}
                       results={results}
                     />
                   </CardContent>

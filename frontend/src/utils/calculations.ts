@@ -13,7 +13,7 @@ function getQuantizationInfo(quantization: string): QuantizationInfo {
  */
 function calculateModelSizeBytes(model: ModelSpecs): number {
   const quantInfo = getQuantizationInfo(model.quantization);
-  return model.parameters * 1e9 * quantInfo.bytesPerParameter;
+  return model.parameters * (1024 ** 3) * quantInfo.bytesPerParameter;
 }
 
 /**
@@ -162,15 +162,14 @@ function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
   freeMemoryForKVCacheGB: number;
   maxKVCacheTokens: number;
   maxBatchSize: number;
+  totalMemoryUsedGB: number;
+  currentKVCacheGB: number;
 } {
   const modelSizeBytes = calculateModelSizeBytes(model);
   const modelSizeGB = modelSizeBytes / (1024 ** 3); // Convert to GB
   const gpuMemoryGB = gpu.memorySize;
   
-  // Calculate memory utilization including overhead
-  // Typical overhead: ~20% for CUDA context, activations, etc.
-  const memoryOverheadMultiplier = 1.2;
-  const totalMemoryNeeded = modelSizeGB * memoryOverheadMultiplier;
+  const totalMemoryNeeded = modelSizeGB;
   
   // Calculate KV cache memory usage using proper formula
   const kvCachePerTokenGB = calculateKVCachePerToken(model);
@@ -203,6 +202,8 @@ function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
     memoryWarningMessage = `Moderate memory usage (${memoryUtilization.toFixed(1)}%). Monitor for potential memory pressure.`;
   }
   
+  const totalMemoryUsedGB = (memoryUtilization / 100) * gpuMemoryGB;
+
   return {
     modelSizeGB,
     memoryUtilization: Math.min(memoryUtilization, 999), // Cap at 999% for display
@@ -212,6 +213,8 @@ function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
     freeMemoryForKVCacheGB,
     maxKVCacheTokens,
     maxBatchSize,
+    totalMemoryUsedGB,
+    currentKVCacheGB,
   };
 }
 

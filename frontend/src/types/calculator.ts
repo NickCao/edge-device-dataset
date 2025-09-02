@@ -43,6 +43,8 @@ export interface CalculationResults {
   freeMemoryForKVCacheGB: number; // Available memory for KV cache in GB
   maxKVCacheTokens: number; // Maximum tokens that can fit in KV cache
   maxBatchSize: number; // Maximum batch size based on available memory
+  totalMemoryUsedGB: number; // Total memory used (model + KV cache + overhead) in GB
+  currentKVCacheGB: number; // Current KV cache size for current batch and sequence length in GB
 }
 
 export interface ComparisonResult {
