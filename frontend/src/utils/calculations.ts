@@ -29,24 +29,44 @@ export function calculateOpsToByteRatio(gpu: GPUSpecs): number {
 }
 
 /**
- * Calculate arithmetic intensity of attention operation
- * For simplicity, we use a fixed arithmetic intensity based on typical attention patterns
- * In practice, this would vary based on sequence length and other factors
+ * Calculate arithmetic intensity for transformer operations
+ * Arithmetic Intensity = FLOPs per byte of data accessed
+ * This varies significantly between prefill and generation phases
  */
 export function calculateArithmeticIntensity(model: ModelSpecs): number {
-  // For attention operations in transformers:
-  // - Prefill phase has higher arithmetic intensity (compute bound)
-  // - Generation phase has lower arithmetic intensity (memory bound)
+  // Get quantization info for bytes per parameter
+  const quantInfo = getQuantizationInfo(model.quantization);
   
-  if (model.batchSize === 1) {
-    // Single inference - typically memory bound
-    // Arithmetic intensity is roughly 1-10 ops/byte for generation
-    return 5; // Conservative estimate for generation phase
-  } else {
-    // Batched inference - more likely to be compute bound
-    // Arithmetic intensity increases with batch size
-    return Math.min(5 * model.batchSize, 200); // Cap at reasonable maximum
-  }
+  // For transformer inference, we have two main phases:
+  // 1. Prefill: Process all input tokens at once (higher arithmetic intensity)
+  // 2. Generation: Generate tokens one by one (lower arithmetic intensity)
+  
+  // Calculate effective sequence length (consider both input and context)
+  const effectiveSeqLen = Math.max(model.promptTokens, 512); // Minimum context for meaningful calculation
+  
+  // For generation phase (which is typically the bottleneck for large models):
+  // - Operations: ~4 * parameters (forward pass through all layers)
+  // - Memory access: parameters * bytes_per_param (loading model weights)
+  // - Plus attention operations which scale with sequence length
+  
+  // Base arithmetic intensity from parameter access
+  const baseIntensity = 4 / quantInfo.bytesPerParameter; // ~2 for FP16, ~4 for FP32, ~8 for INT8
+  
+  // Attention arithmetic intensity scales with sequence length and batch size
+  // Attention has O(seq_len) operations per parameter for generation
+  const attentionMultiplier = Math.log2(effectiveSeqLen / 128) * 0.5 + 1; // Logarithmic scaling
+  
+  // Batch size increases arithmetic intensity (more operations per memory access)
+  const batchMultiplier = Math.sqrt(model.batchSize); // Square root scaling to avoid unrealistic values
+  
+  // Combine factors
+  let arithmeticIntensity = baseIntensity * attentionMultiplier * batchMultiplier;
+  
+  // Apply realistic bounds based on transformer architecture
+  // Generation phase typically ranges from 0.5 to 50 ops/byte depending on model size and quantization
+  arithmeticIntensity = Math.max(0.5, Math.min(arithmeticIntensity, 100));
+  
+  return arithmeticIntensity;
 }
 
 /**

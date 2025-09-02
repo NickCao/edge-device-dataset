@@ -11,8 +11,22 @@ import {
   LineChart,
   Line,
 } from 'recharts';
+import {
+  Box,
+  Typography,
+  Paper,
+  ButtonGroup,
+  Button,
+  Alert,
+  Chip,
+} from '@mui/material';
+import {
+  BarChart as BarChartIcon,
+  TrendingUp as TrendingUpIcon,
+  AccessTime as ClockIcon,
+  Info as InfoIcon,
+} from '@mui/icons-material';
 import type { ComparisonResult } from '../types/calculator';
-import { BarChart3, TrendingUp, Clock, Zap } from 'lucide-react';
 
 interface ComparisonChartProps {
   comparisons: ComparisonResult[];
@@ -170,124 +184,145 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ comparisons })
   };
 
   return (
-    <div className="space-y-4">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Chart Type Selector */}
-      <div className="flex flex-wrap gap-2">
-        <button
+      <ButtonGroup variant="outlined" sx={{ alignSelf: 'center', flexWrap: 'wrap' }}>
+        <Button
           onClick={() => setChartType('performance')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-            chartType === 'performance'
-              ? 'bg-blue-50 border-blue-200 text-blue-700'
-              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-          }`}
+          variant={chartType === 'performance' ? 'contained' : 'outlined'}
+          startIcon={<ClockIcon />}
+          sx={{ minWidth: 120 }}
         >
-          <Clock className="h-4 w-4" />
-          Performance Times
-        </button>
+          Performance
+        </Button>
         
-        <button
+        <Button
           onClick={() => setChartType('bottleneck')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-            chartType === 'bottleneck'
-              ? 'bg-purple-50 border-purple-200 text-purple-700'
-              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-          }`}
+          variant={chartType === 'bottleneck' ? 'contained' : 'outlined'}
+          startIcon={<BarChartIcon />}
+          sx={{ minWidth: 120 }}
         >
-          <BarChart3 className="h-4 w-4" />
-          Bottleneck Analysis
-        </button>
+          Bottleneck
+        </Button>
         
-        <button
+        <Button
           onClick={() => setChartType('throughput')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-            chartType === 'throughput'
-              ? 'bg-red-50 border-red-200 text-red-700'
-              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-          }`}
+          variant={chartType === 'throughput' ? 'contained' : 'outlined'}
+          startIcon={<TrendingUpIcon />}
+          sx={{ minWidth: 120 }}
         >
-          <TrendingUp className="h-4 w-4" />
           Throughput
-        </button>
-      </div>
+        </Button>
+      </ButtonGroup>
 
       {/* Chart */}
-      <div className="bg-white p-4 rounded-md border border-gray-200">
+      <Paper elevation={2} sx={{ p: 3 }}>
         {renderChart()}
-      </div>
+      </Paper>
 
       {/* Chart Description */}
-      <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
-        <div className="flex items-start gap-2">
-          <Zap className="h-4 w-4 text-blue-600 mt-0.5" />
-          <div className="text-xs text-blue-700">
-            {chartType === 'performance' && (
-              <p>
-                <strong>Performance Times:</strong> Compare prefill and generation times. Lower is better.
-              </p>
-            )}
-            {chartType === 'bottleneck' && (
-              <p>
-                <strong>Bottleneck Analysis:</strong> When intensity below ratio line, it's memory-bound. Above = compute-bound.
-              </p>
-            )}
-            {chartType === 'throughput' && (
-              <p>
-                <strong>Throughput:</strong> Total tokens/second including input and output. Higher is better.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+      <Alert severity="info" icon={<InfoIcon />}>
+        {chartType === 'performance' && (
+          <>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              Performance Times:
+            </Typography>
+            <Typography variant="body2">
+              Compare prefill and generation times. Lower is better.
+            </Typography>
+          </>
+        )}
+        {chartType === 'bottleneck' && (
+          <>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              Bottleneck Analysis:
+            </Typography>
+            <Typography variant="body2">
+              When intensity below ratio line, it's memory-bound. Above = compute-bound.
+            </Typography>
+          </>
+        )}
+        {chartType === 'throughput' && (
+          <>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              Throughput:
+            </Typography>
+            <Typography variant="body2">
+              Total tokens/second including input and output. Higher is better.
+            </Typography>
+          </>
+        )}
+      </Alert>
 
       {/* GPU Ranking */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="p-3 bg-green-50 rounded-md border border-green-200">
-          <h4 className="text-xs font-medium text-green-900 mb-2 flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" />
-            Fastest (Throughput)
-          </h4>
-          <div className="space-y-1">
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+        <Paper sx={{ p: 2, backgroundColor: 'success.light', color: 'success.contrastText' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <TrendingUpIcon sx={{ fontSize: 16 }} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              Fastest (Throughput)
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             {comparisons
               .sort((a, b) => b.results.throughputTokensPerSecond - a.results.throughputTokensPerSecond)
               .slice(0, 3)
               .map((comp, index) => (
-                <div key={comp.gpu.name} className="flex justify-between items-center text-xs">
-                  <span className="text-green-700">
+                <Box key={comp.gpu.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption">
                     {index + 1}. {comp.gpu.name.replace('NVIDIA ', '')}
-                  </span>
-                  <span className="font-mono text-green-600">
-                    {comp.results.throughputTokensPerSecond.toFixed(0)}
-                  </span>
-                </div>
+                  </Typography>
+                  <Chip 
+                    label={comp.results.throughputTokensPerSecond.toFixed(0)}
+                    size="small"
+                    sx={{ 
+                      fontFamily: 'monospace',
+                      backgroundColor: 'success.main',
+                      color: 'success.contrastText',
+                      height: 20,
+                      fontSize: '0.75rem'
+                    }}
+                  />
+                </Box>
               ))}
-          </div>
-        </div>
+          </Box>
+        </Paper>
 
-        <div className="p-3 bg-orange-50 rounded-md border border-orange-200">
-          <h4 className="text-xs font-medium text-orange-900 mb-2 flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            Lowest Latency
-          </h4>
-          <div className="space-y-1">
+        <Paper sx={{ p: 2, backgroundColor: 'warning.light', color: 'warning.contrastText' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <ClockIcon sx={{ fontSize: 16 }} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              Lowest Latency
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             {comparisons
               .sort((a, b) => a.results.timePerToken - b.results.timePerToken)
               .slice(0, 3)
               .map((comp, index) => (
-                <div key={comp.gpu.name} className="flex justify-between items-center text-xs">
-                  <span className="text-orange-700">
+                <Box key={comp.gpu.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption">
                     {index + 1}. {comp.gpu.name.replace('NVIDIA ', '')}
-                  </span>
-                  <span className="font-mono text-orange-600">
-                    {comp.results.timePerToken < 1000 
+                  </Typography>
+                  <Chip 
+                    label={comp.results.timePerToken < 1000 
                       ? `${comp.results.timePerToken.toFixed(1)}ms`
                       : `${(comp.results.timePerToken / 1000).toFixed(2)}s`
                     }
-                  </span>
-                </div>
+                    size="small"
+                    sx={{ 
+                      fontFamily: 'monospace',
+                      backgroundColor: 'warning.main',
+                      color: 'warning.contrastText',
+                      height: 20,
+                      fontSize: '0.75rem'
+                    }}
+                  />
+                </Box>
               ))}
-          </div>
-        </div>
-      </div>
-    </div>
+          </Box>
+        </Paper>
+      </Box>
+    </Box>
   );
 };

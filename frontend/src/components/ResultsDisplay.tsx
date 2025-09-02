@@ -1,6 +1,21 @@
 import React from 'react';
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Paper,
+  Alert,
+} from '@mui/material';
+import {
+  Warning as WarningIcon,
+  CheckCircle as CheckCircleIcon,
+  AccessTime as ClockIcon,
+  Bolt as BoltIcon,
+  TrendingUp as TrendingUpIcon,
+  Speed as SpeedIcon,
+} from '@mui/icons-material';
 import type { GPUSpecs, CalculationResults } from '../types/calculator';
-import { AlertTriangle, CheckCircle, Clock, Zap, TrendingUp, Gauge } from 'lucide-react';
 
 interface ResultsDisplayProps {
   gpu: GPUSpecs;
@@ -21,125 +36,137 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Bottleneck Analysis */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="p-3 rounded-md border border-blue-200 bg-blue-50">
-          <div className="flex items-center gap-2 mb-2">
-            <Gauge className="h-4 w-4 text-blue-600" />
-            <h4 className="text-sm font-medium text-blue-900">Ops:Byte Ratio</h4>
-          </div>
-          <div className="text-xl font-bold text-blue-700">
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+        <Paper sx={{ p: 2, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <SpeedIcon sx={{ fontSize: 18 }} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              Ops:Byte Ratio
+            </Typography>
+          </Box>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5 }}>
             {formatNumber(results.opsToByteRatio)}
-          </div>
-          <p className="text-xs text-blue-600 mt-1">
+          </Typography>
+          <Typography variant="caption" sx={{ opacity: 0.9 }}>
             Hardware capability
-          </p>
-        </div>
+          </Typography>
+        </Paper>
 
-        <div className="p-3 rounded-md border border-purple-200 bg-purple-50">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="h-4 w-4 text-purple-600" />
-            <h4 className="text-sm font-medium text-purple-900">Arithmetic Intensity</h4>
-          </div>
-          <div className="text-xl font-bold text-purple-700">
+        <Paper sx={{ p: 2, backgroundColor: 'secondary.light', color: 'secondary.contrastText' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <BoltIcon sx={{ fontSize: 18 }} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              Arithmetic Intensity
+            </Typography>
+          </Box>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5 }}>
             {formatNumber(results.arithmeticIntensity)}
-          </div>
-          <p className="text-xs text-purple-600 mt-1">
+          </Typography>
+          <Typography variant="caption" sx={{ opacity: 0.9 }}>
             Model requirement
-          </p>
-        </div>
-      </div>
+          </Typography>
+        </Paper>
+      </Box>
 
-      {/* Bottleneck Result */}
-      <div className={`p-3 rounded-md border ${
-        results.isMemoryBound 
-          ? 'border-orange-200 bg-orange-50' 
-          : 'border-green-200 bg-green-50'
-      }`}>
-        <div className="flex items-center gap-2 mb-2">
-          {results.isMemoryBound ? (
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-          ) : (
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          )}
-          <h3 className={`text-base font-medium ${
-            results.isMemoryBound ? 'text-orange-900' : 'text-green-900'
-          }`}>
-            {results.isMemoryBound ? 'Memory Bound' : 'Compute Bound'}
-          </h3>
-        </div>
+            {/* Bottleneck Result */}
+      <Alert 
+        severity={results.isMemoryBound ? 'warning' : 'success'} 
+        icon={results.isMemoryBound ? <WarningIcon /> : <CheckCircleIcon />}
+        sx={{ p: 2 }}
+      >
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          {results.isMemoryBound ? 'Memory Bound' : 'Compute Bound'}
+        </Typography>
         
-        <div className={`text-xs ${
-          results.isMemoryBound ? 'text-orange-700' : 'text-green-700'
-        }`}>
-          <p className="mb-1">
-            Arithmetic intensity ({results.arithmeticIntensity.toFixed(1)}) vs Ops:Byte ratio ({results.opsToByteRatio.toFixed(1)})
-          </p>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Arithmetic intensity ({results.arithmeticIntensity.toFixed(1)}) vs Ops:Byte ratio ({results.opsToByteRatio.toFixed(1)})
+        </Typography>
+        
+        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
           {results.isMemoryBound ? (
-            <p><strong>Tip:</strong> Increase batch size or use higher memory bandwidth GPU</p>
+            <>Tip: Increase batch size or use higher memory bandwidth GPU</>
           ) : (
-            <p><strong>Tip:</strong> Upgrade compute power or use optimization techniques</p>
+            <>Tip: Upgrade compute power or use optimization techniques</>
           )}
-        </div>
-      </div>
+        </Typography>
+      </Alert>
 
       {/* Performance Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-3 bg-white rounded-md border border-gray-200">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="h-3 w-3 text-gray-500" />
-            <h4 className="text-xs font-medium text-gray-700">Prefill Time</h4>
-          </div>
-          <div className="text-lg font-bold text-gray-900">
-            {formatTime(results.prefillTime)}
-          </div>
-          <p className="text-xs text-gray-500">
-            Input processing
-          </p>
-        </div>
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { xs: '1fr 1fr', lg: '1fr 1fr 1fr 1fr' }, 
+        gap: 2 
+      }}>
+        <Card elevation={2}>
+          <CardContent sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <ClockIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
+                Prefill Time
+              </Typography>
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              {formatTime(results.prefillTime)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Input processing
+            </Typography>
+          </CardContent>
+        </Card>
 
-        <div className="p-3 bg-white rounded-md border border-gray-200">
-          <div className="flex items-center gap-2 mb-1">
-            <Zap className="h-3 w-3 text-gray-500" />
-            <h4 className="text-xs font-medium text-gray-700">Per Token</h4>
-          </div>
-          <div className="text-lg font-bold text-gray-900">
-            {formatTime(results.timePerToken)}
-          </div>
-          <p className="text-xs text-gray-500">
-            Generation
-          </p>
-        </div>
+        <Card elevation={2}>
+          <CardContent sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <BoltIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
+                Per Token
+              </Typography>
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              {formatTime(results.timePerToken)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Generation
+            </Typography>
+          </CardContent>
+        </Card>
 
-        <div className="p-3 bg-white rounded-md border border-gray-200">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="h-3 w-3 text-gray-500" />
-            <h4 className="text-xs font-medium text-gray-700">Total Time</h4>
-          </div>
-          <div className="text-lg font-bold text-gray-900">
-            {formatTime(results.totalGenerationTime)}
-          </div>
-          <p className="text-xs text-gray-500">
-            End-to-end
-          </p>
-        </div>
+        <Card elevation={2}>
+          <CardContent sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <ClockIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
+                Total Time
+              </Typography>
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              {formatTime(results.totalGenerationTime)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              End-to-end
+            </Typography>
+          </CardContent>
+        </Card>
 
-        <div className="p-3 bg-white rounded-md border border-gray-200">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="h-3 w-3 text-gray-500" />
-            <h4 className="text-xs font-medium text-gray-700">Throughput</h4>
-          </div>
-          <div className="text-lg font-bold text-gray-900">
-            {formatNumber(results.throughputTokensPerSecond, 0)}
-          </div>
-          <p className="text-xs text-gray-500">
-            tokens/s
-          </p>
-        </div>
-      </div>
-
-
-    </div>
+        <Card elevation={2}>
+          <CardContent sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <TrendingUpIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
+                Throughput
+              </Typography>
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              {formatNumber(results.throughputTokensPerSecond, 0)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              tokens/s
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
+    </Box>
   );
 };
