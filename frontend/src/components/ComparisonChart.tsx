@@ -19,6 +19,14 @@ import {
   Button,
   Alert,
   Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+
 } from '@mui/material';
 import {
   BarChart as BarChartIcon,
@@ -26,16 +34,38 @@ import {
   AccessTime as ClockIcon,
   Info as InfoIcon,
 } from '@mui/icons-material';
-import type { ComparisonResult } from '../types/calculator';
+import type { ComparisonResult, ModelSpecs } from '../types/calculator';
+import { COMMON_GPUS } from '../types/calculator';
+import { calculatePerformance } from '../utils/calculations';
 
 interface ComparisonChartProps {
-  comparisons: ComparisonResult[];
+  availableModels: { name: string; specs: ModelSpecs }[];
 }
 
 type ChartType = 'performance' | 'bottleneck' | 'throughput';
 
-export const ComparisonChart: React.FC<ComparisonChartProps> = ({ comparisons }) => {
+export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModels }) => {
   const [chartType, setChartType] = useState<ChartType>('performance');
+  const [selectedModelIndex, setSelectedModelIndex] = useState<number>(0);
+  const [selectedGPUs, setSelectedGPUs] = useState<string[]>(
+    COMMON_GPUS.slice(0, 8).map(gpu => gpu.name) // Default to first 8 GPUs
+  );
+
+  // Calculate comparisons based on selected model and filtered GPUs
+  const currentModel = availableModels[selectedModelIndex]?.specs;
+  const filteredGPUs = COMMON_GPUS.filter(gpu => selectedGPUs.includes(gpu.name));
+  const comparisons: ComparisonResult[] = currentModel ? filteredGPUs.map(gpu => ({
+    gpu,
+    results: calculatePerformance(gpu, currentModel),
+  })) : [];
+
+  const handleGPUToggle = (gpuName: string) => {
+    setSelectedGPUs(prev => 
+      prev.includes(gpuName) 
+        ? prev.filter(name => name !== gpuName)
+        : [...prev, gpuName]
+    );
+  };
 
   // Prepare data for performance chart (times)
   const performanceData = comparisons.map(comp => ({
@@ -111,8 +141,8 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ comparisons })
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend fontSize={11} />
-              <Bar dataKey="prefillTime" fill="#3B82F6" name="Prefill Time" />
-              <Bar dataKey="timePerToken" fill="#10B981" name="Time per Token" />
+              <Bar dataKey="prefillTime" fill="#3B82F6" name="Prefill" />
+              <Bar dataKey="timePerToken" fill="#10B981" name="Decode" />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -185,6 +215,95 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ comparisons })
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Filters Section */}
+      <Paper elevation={1} sx={{ p: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+          Comparison Filters
+        </Typography>
+        
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Model and GPU Summary Row */}
+          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
+            {/* Model Selection */}
+            <Box sx={{ flex: '0 0 300px' }}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="model-select-label">Model</InputLabel>
+                <Select
+                  labelId="model-select-label"
+                  value={selectedModelIndex}
+                  label="Model"
+                  onChange={(e) => setSelectedModelIndex(e.target.value as number)}
+                >
+                  {availableModels.map((model, index) => (
+                    <MenuItem key={index} value={index}>
+                      {model.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* GPU Selection Summary */}
+            <Box sx={{ flex: 1 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 'medium' }}>
+                  Selected GPUs ({selectedGPUs.length} of {COMMON_GPUS.length})
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxHeight: 60, overflow: 'auto' }}>
+                  {selectedGPUs.slice(0, 6).map(gpuName => (
+                    <Chip
+                      key={gpuName}
+                      label={gpuName.replace('NVIDIA ', '')}
+                      size="small"
+                      onDelete={() => handleGPUToggle(gpuName)}
+                    />
+                  ))}
+                  {selectedGPUs.length > 6 && (
+                    <Chip
+                      label={`+${selectedGPUs.length - 6} more`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  )}
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* GPU Selection Checkboxes */}
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 'medium', mb: 1, display: 'block' }}>
+              Available GPUs:
+            </Typography>
+            <FormGroup sx={{ maxHeight: 200, overflow: 'auto' }}>
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)' },
+                gap: 1
+              }}>
+                {COMMON_GPUS.map((gpu) => (
+                  <FormControlLabel
+                    key={gpu.name}
+                    control={
+                      <Checkbox
+                        checked={selectedGPUs.includes(gpu.name)}
+                        onChange={() => handleGPUToggle(gpu.name)}
+                        size="small"
+                      />
+                    }
+                    label={
+                      <Typography variant="caption">
+                        {gpu.name.replace('NVIDIA ', '')}
+                      </Typography>
+                    }
+                  />
+                ))}
+              </Box>
+            </FormGroup>
+          </Box>
+        </Box>
+      </Paper>
+
       {/* Chart Type Selector */}
       <ButtonGroup variant="outlined" sx={{ alignSelf: 'center', flexWrap: 'wrap' }}>
         <Button

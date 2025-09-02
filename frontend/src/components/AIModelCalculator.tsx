@@ -17,7 +17,7 @@ import {
   Calculate as CalculateIcon,
   BarChart as BarChartIcon,
 } from '@mui/icons-material';
-import type { GPUSpecs, ModelSpecs, CalculationResults, ComparisonResult } from '../types/calculator';
+import type { GPUSpecs, ModelSpecs, CalculationResults } from '../types/calculator';
 import { COMMON_GPUS, DEFAULT_MODEL } from '../types/calculator';
 import { calculatePerformance } from '../utils/calculations';
 import { GPUSelector } from './GPUSelector';
@@ -51,7 +51,6 @@ export const AIModelCalculator: React.FC = () => {
   const [selectedGPU, setSelectedGPU] = useState<GPUSpecs>(COMMON_GPUS[1]); // Default to A10
   const [modelSpecs, setModelSpecs] = useState<ModelSpecs>(DEFAULT_MODEL);
   const [results, setResults] = useState<CalculationResults | null>(null);
-  const [comparisonResults, setComparisonResults] = useState<ComparisonResult[]>([]);
   const [tabValue, setTabValue] = useState(0);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -63,13 +62,6 @@ export const AIModelCalculator: React.FC = () => {
     if (selectedGPU && modelSpecs) {
       const calculationResults = calculatePerformance(selectedGPU, modelSpecs);
       setResults(calculationResults);
-      
-      // Calculate comparison results for all GPUs
-      const comparisons = COMMON_GPUS.map(gpu => ({
-        gpu,
-        results: calculatePerformance(gpu, modelSpecs),
-      }));
-      setComparisonResults(comparisons);
     }
   }, [selectedGPU, modelSpecs]);
 
@@ -234,32 +226,22 @@ export const AIModelCalculator: React.FC = () => {
             </Typography>
           </Box>
 
-          {results && (
-            <Card elevation={3}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <BarChartIcon sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6" component="h2">
-                    Interactive Charts & Rankings
-                  </Typography>
-                </Box>
-                <ComparisonChart 
-                  comparisons={comparisonResults}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {!results && (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                Configure your model in the Calculator tab
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Set up your GPU and model parameters to see comparison charts.
-              </Typography>
-            </Box>
-          )}
+                <Card elevation={3}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <BarChartIcon sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="h6" component="h2">
+              Interactive Charts & Rankings
+            </Typography>
+          </Box>
+          <ComparisonChart 
+            availableModels={[
+              { name: 'Current Model Configuration', specs: modelSpecs },
+              { name: 'Llama 2 7B (Default)', specs: DEFAULT_MODEL },
+            ]}
+          />
+        </CardContent>
+      </Card>
         </TabPanel>
 
         {/* Footer */}
