@@ -219,6 +219,27 @@ function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
 }
 
 /**
+ * Check if performance is acceptable and create warning if needed
+ */
+function checkPerformanceWarning(throughput: number): {
+  hasPerformanceWarning: boolean;
+  performanceWarningMessage?: string;
+} {
+  const minAcceptableThroughput = 5; // tokens per second
+  
+  if (throughput < minAcceptableThroughput) {
+    return {
+      hasPerformanceWarning: true,
+      performanceWarningMessage: `Very low throughput (${throughput.toFixed(1)} token/s). Consider using a more powerful GPU, smaller model, better quantization, or optimizing your setup for better performance.`,
+    };
+  }
+  
+  return {
+    hasPerformanceWarning: false,
+  };
+}
+
+/**
  * Main calculation function that computes all performance metrics
  */
 export function calculatePerformance(gpu: GPUSpecs, model: ModelSpecs): CalculationResults {
@@ -237,6 +258,7 @@ export function calculatePerformance(gpu: GPUSpecs, model: ModelSpecs): Calculat
   
   const totalTokens = model.promptTokens + model.outputTokens;
   const throughputTokensPerSecond = calculateThroughput(totalGenerationTime, totalTokens);
+  const performanceCheck = checkPerformanceWarning(throughputTokensPerSecond);
   
   return {
     opsToByteRatio,
@@ -247,5 +269,6 @@ export function calculatePerformance(gpu: GPUSpecs, model: ModelSpecs): Calculat
     totalGenerationTime,
     throughputTokensPerSecond,
     ...memoryCheck,
+    ...performanceCheck,
   };
 }

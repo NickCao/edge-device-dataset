@@ -45,6 +45,8 @@ export interface CalculationResults {
   maxBatchSize: number; // Maximum batch size based on available memory
   totalMemoryUsedGB: number; // Total memory used (model + KV cache + overhead) in GB
   currentKVCacheGB: number; // Current KV cache size for current batch and sequence length in GB
+  hasPerformanceWarning: boolean; // True if throughput is too low
+  performanceWarningMessage?: string; // Warning message for poor performance
 }
 
 export interface ComparisonResult {

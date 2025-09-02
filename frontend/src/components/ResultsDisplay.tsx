@@ -55,6 +55,22 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
         </Alert>
       )}
 
+      {/* Performance Warning */}
+      {results.hasPerformanceWarning && (
+        <Alert 
+          severity="error" 
+          icon={<ErrorIcon />}
+          sx={{ p: 2 }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Poor Performance Warning
+          </Typography>
+          <Typography variant="body2">
+            {results.performanceWarningMessage}
+          </Typography>
+        </Alert>
+      )}
+
       {/* Memory Usage Display */}
       <Paper sx={{ p: 2, backgroundColor: results.hasMemoryWarning ? 'error.light' : 'info.light', color: results.hasMemoryWarning ? 'error.contrastText' : 'info.contrastText' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
