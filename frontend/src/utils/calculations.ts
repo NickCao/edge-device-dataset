@@ -29,56 +29,59 @@ export function calculateOpsToByteRatio(gpu: GPUSpecs): number {
 }
 
 /**
- * Calculate arithmetic intensity for transformer operations
- * Based on Baseten's methodology: https://www.baseten.co/blog/llm-transformer-inference-guide/
- * Arithmetic Intensity = FLOPs per byte of memory accessed
+ * Calculate arithmetic intensity for transformer attention operations
+ * Using exact formula from Baseten blog: https://www.baseten.co/blog/llm-transformer-inference-guide/
+ * 
+ * Breaking down the attention equation step by step:
+ * total_memory_movement = 8N^2 + 8Nd bytes
+ * total_compute = 4(N^2)d + 3N^2 ops  
+ * arithmetic_intensity = total_compute / total_memory_movement
  */
 export function calculateArithmeticIntensity(model: ModelSpecs): number {
-  // Get quantization info for bytes per parameter
+  // For Llama-style transformers, estimate model dimensions
+  // Based on standard transformer architectures
+  const d = estimateModelDimension(model.parameters); // hidden dimension
+  const N = model.sequenceLength; // sequence length
+  
+  // From Baseten's detailed attention breakdown:
+  // Memory movement in bytes (accounting for quantization):
+  // = (2 * 2 * (N * d)) + (2 * (N * N)) + (2 * ((N*N) + (N * d))) + (2 * (N * N)) + (2 * (N * N)) + (2 * (N * d))
+  // = 8N^2 + 8Nd bytes
+  
   const quantInfo = getQuantizationInfo(model.quantization);
+  const totalMemoryMovement = (8 * N * N + 8 * N * d) * quantInfo.bytesPerParameter / 2; // Adjust for quantization vs FP16 baseline
   
-  // Transformer inference has two main phases with different arithmetic intensities:
-  // 1. Prefill: Process all input tokens in parallel (compute-bound)
-  // 2. Autoregressive generation: Generate tokens one by one (memory-bound)
+  // Compute operations (from summing the second column in their table):
+  // = ((2 * d) * (N * N)) + (3 * (N * N)) + ((2 * N) * (N * d))
+  // = 4(N^2)d + 3N^2 ops
+  const totalCompute = 4 * N * N * d + 3 * N * N;
   
-  // For autoregressive generation (the bottleneck for most LLM inference):
-  // - Operations per token: ~2 * parameters (forward pass through all layers)
-  // - Memory access per token: parameters * bytes_per_parameter (loading model weights)
-  // - Base arithmetic intensity = (2 * parameters) / (parameters * bytes_per_parameter) = 2 / bytes_per_parameter
+  // Arithmetic intensity = total compute / total memory movement
+  let arithmeticIntensity = totalCompute / totalMemoryMovement;
   
-  const baseArithmeticIntensity = 2 / quantInfo.bytesPerParameter;
+  // Apply batching effect - operations scale with batch size but memory movement stays constant
+  arithmeticIntensity = arithmeticIntensity * model.batchSize;
   
-  // Batching increases arithmetic intensity by reusing loaded weights:
-  // - Operations: batch_size * 2 * parameters
-  // - Memory access: parameters * bytes_per_parameter (weights loaded once)
-  // - Arithmetic intensity = (batch_size * 2 * parameters) / (parameters * bytes_per_parameter) = batch_size * 2 / bytes_per_parameter
+  return Math.max(0.1, arithmeticIntensity); // Minimum realistic bound
+}
+
+/**
+ * Estimate model hidden dimension based on parameter count
+ * Based on standard transformer scaling relationships
+ */
+function estimateModelDimension(parameters: number): number {
+  // Standard transformer relationships (approximate)
+  // 7B models typically have d_model = 4096
+  // 13B models typically have d_model = 5120
+  // 70B models typically have d_model = 8192
   
-  const batchedArithmeticIntensity = baseArithmeticIntensity * model.batchSize;
-  
-  // For prefill phase, we can process multiple tokens in parallel:
-  // - Operations: prompt_tokens * batch_size * 2 * parameters  
-  // - Memory access: parameters * bytes_per_parameter (weights loaded once)
-  // - Prefill arithmetic intensity = prompt_tokens * batch_size * 2 / bytes_per_parameter
-  
-  const prefillArithmeticIntensity = (model.promptTokens * model.batchSize * 2) / quantInfo.bytesPerParameter;
-  
-  // The overall arithmetic intensity depends on the workload characteristics:
-  // - Single token generation (batch=1): Very low intensity, memory-bound
-  // - Batched generation: Higher intensity, potentially compute-bound
-  // - Prefill: Very high intensity, compute-bound
-  
-  // For inference analysis, we focus on the generation phase as it's the sustained workload
-  // But we factor in some prefill benefits for longer prompts
-  const prefillWeight = Math.min(model.promptTokens / 1000, 0.3); // Cap prefill influence at 30%
-  const generationWeight = 1 - prefillWeight;
-  
-  const weightedArithmeticIntensity = 
-    (prefillWeight * prefillArithmeticIntensity) + 
-    (generationWeight * batchedArithmeticIntensity);
-  
-  // Apply realistic bounds based on transformer characteristics
-  // Lower bound: Single token generation is always at least 0.5 ops/byte
-  return Math.max(0.5, weightedArithmeticIntensity);
+  if (parameters <= 1) return 2048;      // Small models
+  else if (parameters <= 3) return 3072; // 3B models  
+  else if (parameters <= 7) return 4096; // 7B models
+  else if (parameters <= 13) return 5120; // 13B models
+  else if (parameters <= 30) return 6656; // 30B models
+  else if (parameters <= 65) return 8192; // 65B models
+  else return Math.round(8192 * Math.sqrt(parameters / 65)); // Larger models
 }
 
 /**
