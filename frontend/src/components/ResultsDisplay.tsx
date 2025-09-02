@@ -198,6 +198,41 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
         </Typography>
       </Alert>
 
+      {/* Performance Estimation Notice */}
+      <Alert severity="info" sx={{ p: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              Performance Estimation Notice
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              These performance numbers are <strong>theoretical estimates</strong> based on the following assumptions:
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2, '& li': { mb: 0.5 } }}>
+              <li>
+                <Typography variant="caption">
+                  <strong>Prefill phase</strong> is compute-bound (limited by GPU compute bandwidth)
+                </Typography>
+              </li>
+              <li>
+                <Typography variant="caption">
+                  <strong>Decode phase</strong> is memory-bound (limited by memory bandwidth)
+                </Typography>
+              </li>
+              <li>
+                <Typography variant="caption">
+                  <strong>Single batch inference</strong> with no additional optimizations
+                </Typography>
+              </li>
+            </Box>
+            <Typography variant="caption" sx={{ fontStyle: 'italic', opacity: 0.8 }}>
+              Real-world performance may vary significantly based on model implementation, 
+              hardware specifics, software optimizations, and workload characteristics.
+            </Typography>
+          </Box>
+        </Box>
+      </Alert>
+
       {/* Performance Metrics */}
       <Box sx={{ 
         display: 'grid', 
@@ -216,7 +251,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
               {formatTime(results.prefillTime)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              per token
+              total
             </Typography>
           </CardContent>
         </Card>

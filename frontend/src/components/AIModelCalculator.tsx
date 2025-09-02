@@ -245,9 +245,13 @@ export const AIModelCalculator: React.FC = () => {
         </TabPanel>
 
         {/* Footer */}
-        <Box sx={{ textAlign: 'center', py: 3, mt: 4 }}>
+        <Box sx={{ textAlign: 'center', py: 3, mt: 4, maxWidth: 600, mx: 'auto' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            <strong>Performance estimates are theoretical</strong> - assuming prefill is compute-bound, 
+            decode is memory-bound, and single batch inference.
+          </Typography>
           <Typography variant="caption" color="text.secondary">
-            Estimates based on theoretical models. Real performance may vary.
+            Real-world performance may vary significantly based on implementation, hardware, and optimizations.
           </Typography>
         </Box>
       </Container>
