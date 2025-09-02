@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
+import {
+  Container,
+  Card,
+  CardContent,
+  Typography,
+  Box,
+} from '@mui/material';
+import {
+  Computer as ComputerIcon,
+  Memory as ModelIcon,
+  AccessTime as ClockIcon,
+  TrendingUp as TrendingUpIcon,
+} from '@mui/icons-material';
 import type { GPUSpecs, ModelSpecs, CalculationResults, ComparisonResult } from '../types/calculator';
 import { COMMON_GPUS, DEFAULT_MODEL } from '../types/calculator';
 import { calculatePerformance } from '../utils/calculations';
@@ -7,7 +19,6 @@ import { GPUSelector } from './GPUSelector';
 import { ModelInputs } from './ModelInputs';
 import { ResultsDisplay } from './ResultsDisplay';
 import { ComparisonChart } from './ComparisonChart';
-import { Cpu, Zap, Clock, TrendingUp } from 'lucide-react';
 
 export const AIModelCalculator: React.FC = () => {
   const [selectedGPU, setSelectedGPU] = useState<GPUSpecs>(COMMON_GPUS[1]); // Default to A10
@@ -31,107 +42,145 @@ export const AIModelCalculator: React.FC = () => {
   }, [selectedGPU, modelSpecs]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3">
-      <div className="max-w-7xl mx-auto space-y-4">
+    <Box sx={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+      py: 3,
+    }}>
+      <Container maxWidth="xl">
         {/* Header */}
-        <div className="text-center py-4">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography 
+            variant="h3" 
+            component="h1" 
+            sx={{ 
+              fontWeight: 'bold', 
+              color: 'text.primary',
+              mb: 2 
+            }}
+          >
             AI Model Performance Calculator
-          </h1>
-          <p className="text-sm text-gray-600 max-w-2xl mx-auto">
+          </Typography>
+          <Typography 
+            variant="body1" 
+            color="text.secondary" 
+            sx={{ maxWidth: '600px', mx: 'auto' }}
+          >
             Calculate if your LLM inference is compute-bound or memory-bound on different GPUs. 
             Based on{' '}
-            <a 
+            <Typography
+              component="a"
               href="https://www.baseten.co/blog/llm-transformer-inference-guide/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline font-medium"
+              sx={{
+                color: 'primary.main',
+                textDecoration: 'none',
+                fontWeight: 500,
+                '&:hover': {
+                  textDecoration: 'underline',
+                },
+              }}
             >
               Baseten's methodology
-            </a>.
-          </p>
-        </div>
+            </Typography>.
+          </Typography>
+        </Box>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', lg: 'row' },
+          gap: 3 
+        }}>
           {/* Input Section */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Cpu className="w-4 h-4" />
-                    GPU
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-2">
-                  <GPUSelector
-                    selectedGPU={selectedGPU}
-                    onGPUChange={setSelectedGPU}
-                  />
-                </CardContent>
-              </Card>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', md: 'row' },
+              gap: 3 
+            }}>
+              <Box sx={{ flex: 1 }}>
+                <Card elevation={3}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <ComputerIcon sx={{ mr: 1, color: 'primary.main' }} />
+                      <Typography variant="h6" component="h2">
+                        GPU Configuration
+                      </Typography>
+                    </Box>
+                    <GPUSelector
+                      selectedGPU={selectedGPU}
+                      onGPUChange={setSelectedGPU}
+                    />
+                  </CardContent>
+                </Card>
+              </Box>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Zap className="w-4 h-4" />
-                    Model
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-2">
-                  <ModelInputs
-                    modelSpecs={modelSpecs}
-                    onModelChange={setModelSpecs}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+              <Box sx={{ flex: 1 }}>
+                <Card elevation={3}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <ModelIcon sx={{ mr: 1, color: 'primary.main' }} />
+                      <Typography variant="h6" component="h2">
+                        Model Configuration
+                      </Typography>
+                    </Box>
+                    <ModelInputs
+                      modelSpecs={modelSpecs}
+                      onModelChange={setModelSpecs}
+                    />
+                  </CardContent>
+                </Card>
+              </Box>
+            </Box>
+          </Box>
 
           {/* Results Section */}
-          <div className="space-y-4">
-            {results && (
-              <>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Clock className="w-4 h-4" />
-                      Performance Analysis
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-2">
-                    <ResultsDisplay 
-                      gpu={selectedGPU}
-                      results={results}
-                    />
-                  </CardContent>
-                </Card>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {results && (
+                <>
+                  <Card elevation={3}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <ClockIcon sx={{ mr: 1, color: 'primary.main' }} />
+                        <Typography variant="h6" component="h2">
+                          Performance Analysis
+                        </Typography>
+                      </Box>
+                      <ResultsDisplay 
+                        gpu={selectedGPU}
+                        results={results}
+                      />
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <TrendingUp className="w-4 h-4" />
-                      GPU Comparison
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-2">
-                    <ComparisonChart 
-                      comparisons={comparisonResults}
-                    />
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </div>
-        </div>
+                  <Card elevation={3}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <TrendingUpIcon sx={{ mr: 1, color: 'primary.main' }} />
+                        <Typography variant="h6" component="h2">
+                          GPU Comparison
+                        </Typography>
+                      </Box>
+                      <ComparisonChart 
+                        comparisons={comparisonResults}
+                      />
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </Box>
+          </Box>
+        </Box>
 
         {/* Footer */}
-        <div className="text-center py-3 text-gray-400">
-          <p className="text-xs">
+        <Box sx={{ textAlign: 'center', py: 3, mt: 4 }}>
+          <Typography variant="caption" color="text.secondary">
             Estimates based on theoretical models. Real performance may vary.
-          </p>
-        </div>
-      </div>
-    </div>
+          </Typography>
+        </Box>
+      </Container>
+    </Box>
   );
 };

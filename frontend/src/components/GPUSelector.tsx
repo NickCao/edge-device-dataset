@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Box,
+  Typography,
+  Paper,
+} from '@mui/material';
 import type { GPUSpecs } from '../types/calculator';
 import { COMMON_GPUS } from '../types/calculator';
-import { ChevronDown } from 'lucide-react';
 
 interface GPUSelectorProps {
   selectedGPU: GPUSpecs;
@@ -32,110 +41,100 @@ export const GPUSelector: React.FC<GPUSelectorProps> = ({ selectedGPU, onGPUChan
   };
 
   return (
-    <div className="space-y-3">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* GPU Preset Selector */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Select GPU
-        </label>
-        <div className="relative">
-          <select
-            value={isCustom ? 'custom' : selectedGPU.name}
-            onChange={(e) => handlePresetChange(e.target.value)}
-            className="w-full pl-3 pr-8 py-1.5 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-md appearance-none bg-white"
-          >
-            {COMMON_GPUS.map((gpu) => (
-              <option key={gpu.name} value={gpu.name}>
-                {gpu.name}
-              </option>
-            ))}
-            <option value="custom">Custom GPU</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-        </div>
-      </div>
+      <FormControl fullWidth size="small">
+        <InputLabel id="gpu-select-label">Select GPU</InputLabel>
+        <Select
+          labelId="gpu-select-label"
+          value={isCustom ? 'custom' : selectedGPU.name}
+          label="Select GPU"
+          onChange={(e) => handlePresetChange(e.target.value as string)}
+        >
+          {COMMON_GPUS.map((gpu) => (
+            <MenuItem key={gpu.name} value={gpu.name}>
+              {gpu.name}
+            </MenuItem>
+          ))}
+          <MenuItem value="custom">Custom GPU</MenuItem>
+        </Select>
+      </FormControl>
 
       {/* Custom GPU Inputs */}
       {isCustom && (
-        <div className="space-y-2 p-3 bg-gray-50 rounded-md border">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              GPU Name
-            </label>
-            <input
-              type="text"
+        <Paper sx={{ p: 2, backgroundColor: 'grey.50' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="GPU Name"
               value={customGPU.name}
               onChange={(e) => handleCustomGPUChange('name', e.target.value)}
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              size="small"
+              fullWidth
               placeholder="Custom GPU"
             />
-          </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Compute Bandwidth (TFLOPS)
-            </label>
-            <input
+            <TextField
+              label="Compute Bandwidth (TFLOPS)"
               type="number"
               value={customGPU.computeBandwidth}
               onChange={(e) => handleCustomGPUChange('computeBandwidth', parseFloat(e.target.value) || 0)}
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              size="small"
+              fullWidth
               placeholder="125"
-              min="0"
-              step="0.1"
+              inputProps={{ min: 0, step: 0.1 }}
             />
-          </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Memory Bandwidth (GB/s)
-            </label>
-            <input
+            <TextField
+              label="Memory Bandwidth (GB/s)"
               type="number"
               value={customGPU.memoryBandwidth}
               onChange={(e) => handleCustomGPUChange('memoryBandwidth', parseFloat(e.target.value) || 0)}
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              size="small"
+              fullWidth
               placeholder="600"
-              min="0"
-              step="0.1"
+              inputProps={{ min: 0, step: 0.1 }}
             />
-          </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Memory Size (GB)
-            </label>
-            <input
+            <TextField
+              label="Memory Size (GB)"
               type="number"
               value={customGPU.memorySize}
               onChange={(e) => handleCustomGPUChange('memorySize', parseFloat(e.target.value) || 0)}
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              size="small"
+              fullWidth
               placeholder="24"
-              min="0"
-              step="1"
+              inputProps={{ min: 0, step: 1 }}
             />
-          </div>
-        </div>
+          </Box>
+        </Paper>
       )}
 
       {/* GPU Specs Display */}
-      <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
-        <h4 className="text-xs font-medium text-blue-900 mb-2">Current GPU Specs</h4>
-        <div className="grid grid-cols-1 gap-1 text-xs text-blue-700">
-          <div className="flex justify-between">
-            <span>Compute:</span>
-            <span className="font-mono">{selectedGPU.computeBandwidth} TFLOPS</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Memory BW:</span>
-            <span className="font-mono">{selectedGPU.memoryBandwidth} GB/s</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Memory:</span>
-            <span className="font-mono">{selectedGPU.memorySize} GB</span>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Paper sx={{ p: 2, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+          Current GPU Specs
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="caption">Compute:</Typography>
+            <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+              {selectedGPU.computeBandwidth} TFLOPS
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="caption">Memory BW:</Typography>
+            <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+              {selectedGPU.memoryBandwidth} GB/s
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="caption">Memory:</Typography>
+            <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+              {selectedGPU.memorySize} GB
+            </Typography>
+          </Box>
+        </Box>
+      </Paper>
+    </Box>
   );
 };

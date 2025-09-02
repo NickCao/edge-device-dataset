@@ -1,7 +1,19 @@
 import React from 'react';
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Box,
+  Typography,
+  Paper,
+  Tooltip,
+  IconButton,
+} from '@mui/material';
+import { Info as InfoIcon } from '@mui/icons-material';
 import type { ModelSpecs, QuantizationType } from '../types/calculator';
 import { QUANTIZATION_OPTIONS } from '../types/calculator';
-import { Info } from 'lucide-react';
 
 interface ModelInputsProps {
   modelSpecs: ModelSpecs;
@@ -33,178 +45,168 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
   const modelSizeGB = modelSpecs.parameters * quantInfo.bytesPerParameter;
 
   return (
-    <div className="space-y-3">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* Model Preset Selector */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Model Preset
-        </label>
-        <select
+      <FormControl fullWidth size="small">
+        <InputLabel id="model-preset-label">Model Preset</InputLabel>
+        <Select
+          labelId="model-preset-label"
+          label="Model Preset"
+          defaultValue=""
           onChange={(e) => {
             const model = COMMON_MODELS.find(m => m.name === e.target.value);
             if (model) handlePresetChange(model.parameters);
           }}
-          className="w-full px-3 py-1.5 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-md bg-white"
         >
-          <option value="">Select a model...</option>
+          <MenuItem value="">Select a model...</MenuItem>
           {COMMON_MODELS.map((model) => (
-            <option key={model.name} value={model.name}>
+            <MenuItem key={model.name} value={model.name}>
               {model.name}
-            </option>
+            </MenuItem>
           ))}
-        </select>
-      </div>
+        </Select>
+      </FormControl>
 
       {/* Parameters Input */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Parameters (Billions)
-          <div className="inline-flex items-center ml-1 group relative">
-            <Info className="h-3 w-3 text-gray-400" />
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-              Total parameters (e.g., 7 for Llama 2 7B)
-            </div>
-          </div>
-        </label>
-        <input
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <TextField
+          label="Parameters (Billions)"
           type="number"
           value={modelSpecs.parameters}
           onChange={(e) => handleInputChange('parameters', parseFloat(e.target.value) || 0)}
-          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          size="small"
+          fullWidth
           placeholder="7"
-          min="0.1"
-          step="0.1"
+          inputProps={{ min: 0.1, step: 0.1 }}
+          helperText={`~${modelSizeGB.toFixed(1)} GB (${modelSpecs.quantization})`}
         />
-        <p className="text-xs text-gray-500 mt-0.5">
-          ~{modelSizeGB.toFixed(1)} GB ({modelSpecs.quantization})
-        </p>
-      </div>
+        <Tooltip title="Total parameters (e.g., 7 for Llama 2 7B)" placement="top">
+          <IconButton size="small">
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {/* Quantization */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Quantization
-          <div className="inline-flex items-center ml-1 group relative">
-            <Info className="h-3 w-3 text-gray-400" />
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-              {quantInfo.description}
-            </div>
-          </div>
-        </label>
-        <select
-          value={modelSpecs.quantization}
-          onChange={(e) => handleInputChange('quantization', e.target.value as QuantizationType)}
-          className="w-full px-3 py-1.5 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-md bg-white"
-        >
-          {QUANTIZATION_OPTIONS.map((quant) => (
-            <option key={quant.name} value={quant.name}>
-              {quant.name} ({quant.bytesPerParameter}x bytes/param)
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-gray-500 mt-0.5">
-          {quantInfo.description}
-        </p>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <FormControl fullWidth size="small">
+          <InputLabel id="quantization-label">Quantization</InputLabel>
+          <Select
+            labelId="quantization-label"
+            value={modelSpecs.quantization}
+            label="Quantization"
+            onChange={(e) => handleInputChange('quantization', e.target.value as QuantizationType)}
+          >
+            {QUANTIZATION_OPTIONS.map((quant) => (
+              <MenuItem key={quant.name} value={quant.name}>
+                {quant.name} ({quant.bytesPerParameter}x bytes/param)
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Tooltip title={quantInfo.description} placement="top">
+          <IconButton size="small">
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {/* Sequence Length */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Max Sequence Length
-          <div className="inline-flex items-center ml-1 group relative">
-            <Info className="h-3 w-3 text-gray-400" />
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-              Context window size
-            </div>
-          </div>
-        </label>
-        <input
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <TextField
+          label="Max Sequence Length"
           type="number"
           value={modelSpecs.sequenceLength}
           onChange={(e) => handleInputChange('sequenceLength', parseInt(e.target.value) || 0)}
-          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          size="small"
+          fullWidth
           placeholder="2048"
-          min="1"
-          step="1"
+          inputProps={{ min: 1, step: 1 }}
         />
-      </div>
+        <Tooltip title="Context window size" placement="top">
+          <IconButton size="small">
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {/* Batch Size */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Batch Size
-          <div className="inline-flex items-center ml-1 group relative">
-            <Info className="h-3 w-3 text-gray-400" />
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-              Sequences processed simultaneously
-            </div>
-          </div>
-        </label>
-        <input
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <TextField
+          label="Batch Size"
           type="number"
           value={modelSpecs.batchSize}
           onChange={(e) => handleInputChange('batchSize', parseInt(e.target.value) || 1)}
-          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          size="small"
+          fullWidth
           placeholder="1"
-          min="1"
-          step="1"
+          inputProps={{ min: 1, step: 1 }}
         />
-      </div>
+        <Tooltip title="Sequences processed simultaneously" placement="top">
+          <IconButton size="small">
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {/* Prompt Tokens */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Prompt Tokens
-          <div className="inline-flex items-center ml-1 group relative">
-            <Info className="h-3 w-3 text-gray-400" />
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-              Input tokens (prefill)
-            </div>
-          </div>
-        </label>
-        <input
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <TextField
+          label="Prompt Tokens"
           type="number"
           value={modelSpecs.promptTokens}
           onChange={(e) => handleInputChange('promptTokens', parseInt(e.target.value) || 0)}
-          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          size="small"
+          fullWidth
           placeholder="350"
-          min="1"
-          step="1"
+          inputProps={{ min: 1, step: 1 }}
         />
-      </div>
+        <Tooltip title="Input tokens (prefill)" placement="top">
+          <IconButton size="small">
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {/* Output Tokens */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Output Tokens
-          <div className="inline-flex items-center ml-1 group relative">
-            <Info className="h-3 w-3 text-gray-400" />
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-              Tokens to generate
-            </div>
-          </div>
-        </label>
-        <input
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <TextField
+          label="Output Tokens"
           type="number"
           value={modelSpecs.outputTokens}
           onChange={(e) => handleInputChange('outputTokens', parseInt(e.target.value) || 0)}
-          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          size="small"
+          fullWidth
           placeholder="150"
-          min="1"
-          step="1"
+          inputProps={{ min: 1, step: 1 }}
         />
-      </div>
+        <Tooltip title="Tokens to generate" placement="top">
+          <IconButton size="small">
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {/* Summary */}
-      <div className="p-3 bg-green-50 rounded-md border border-green-200">
-        <h4 className="text-xs font-medium text-green-900 mb-2">Summary</h4>
-        <div className="grid grid-cols-1 gap-0.5 text-xs text-green-700">
-          <div>Total tokens: {modelSpecs.promptTokens + modelSpecs.outputTokens}</div>
-          <div>Model size: ~{modelSizeGB.toFixed(1)} GB ({modelSpecs.quantization})</div>
-          <div>Batch size: {modelSpecs.batchSize}</div>
-          <div>Quantization: {modelSpecs.quantization} ({quantInfo.bytesPerParameter}x bytes/param)</div>
-        </div>
-      </div>
-    </div>
+      <Paper sx={{ p: 2, backgroundColor: 'success.light', color: 'success.contrastText' }}>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+          Summary
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Typography variant="caption">
+            Total tokens: {modelSpecs.promptTokens + modelSpecs.outputTokens}
+          </Typography>
+          <Typography variant="caption">
+            Model size: ~{modelSizeGB.toFixed(1)} GB ({modelSpecs.quantization})
+          </Typography>
+          <Typography variant="caption">
+            Batch size: {modelSpecs.batchSize}
+          </Typography>
+          <Typography variant="caption">
+            Quantization: {modelSpecs.quantization} ({quantInfo.bytesPerParameter}x bytes/param)
+          </Typography>
+        </Box>
+      </Paper>
+    </Box>
   );
 };
