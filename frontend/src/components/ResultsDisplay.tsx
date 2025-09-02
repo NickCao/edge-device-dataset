@@ -193,14 +193,14 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <ClockIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
               <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
-                Prefill Time
+                Prefill
               </Typography>
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
               {formatTime(results.prefillTime)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Input processing
+              per token
             </Typography>
           </CardContent>
         </Card>
@@ -210,14 +210,14 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <BoltIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
               <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
-                Per Token
+                Decode
               </Typography>
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
               {formatTime(results.timePerToken)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Generation
+              per token
             </Typography>
           </CardContent>
         </Card>
@@ -234,7 +234,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
               {formatTime(results.totalGenerationTime)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              End-to-end
+              end-to-end
             </Typography>
           </CardContent>
         </Card>
@@ -251,7 +251,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
               {formatNumber(results.throughputTokensPerSecond, 0)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              tokens/s
+              token/s
             </Typography>
           </CardContent>
         </Card>
