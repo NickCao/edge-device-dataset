@@ -67,8 +67,21 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModel
     );
   };
 
+  const handleSelectAll = () => {
+    setSelectedGPUs(COMMON_GPUS.map(gpu => gpu.name));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedGPUs([]);
+  };
+
+  // Sort comparisons by performance (throughput) in descending order
+  const sortedComparisons = [...comparisons].sort((a, b) => 
+    b.results.throughputTokensPerSecond - a.results.throughputTokensPerSecond
+  );
+
   // Prepare data for performance chart (times)
-  const performanceData = comparisons.map(comp => ({
+  const performanceData = sortedComparisons.map(comp => ({
     name: comp.gpu.name.replace('NVIDIA ', '').replace(' SXM', ''),
     prefillTime: comp.results.prefillTime,
     timePerToken: comp.results.timePerToken,
@@ -77,7 +90,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModel
   }));
 
   // Prepare data for bottleneck analysis
-  const bottleneckData = comparisons.map(comp => ({
+  const bottleneckData = sortedComparisons.map(comp => ({
     name: comp.gpu.name.replace('NVIDIA ', '').replace(' SXM', ''),
     opsToByteRatio: comp.results.opsToByteRatio,
     arithmeticIntensity: comp.results.arithmeticIntensity,
@@ -85,7 +98,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModel
   }));
 
   // Prepare data for throughput comparison
-  const throughputData = comparisons.map(comp => ({
+  const throughputData = sortedComparisons.map(comp => ({
     name: comp.gpu.name.replace('NVIDIA ', '').replace(' SXM', ''),
     throughput: comp.results.throughputTokensPerSecond,
     computeBandwidth: comp.gpu.computeBandwidth,
@@ -272,9 +285,19 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModel
 
           {/* GPU Selection Checkboxes */}
           <Box>
-            <Typography variant="caption" sx={{ fontWeight: 'medium', mb: 1, display: 'block' }}>
-              Available GPUs:
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="caption" sx={{ fontWeight: 'medium' }}>
+                Available GPUs:
+              </Typography>
+              <ButtonGroup size="small" variant="outlined">
+                <Button onClick={handleSelectAll} sx={{ fontSize: '0.7rem', py: 0.5 }}>
+                  Select All
+                </Button>
+                <Button onClick={handleDeselectAll} sx={{ fontSize: '0.7rem', py: 0.5 }}>
+                  Deselect All
+                </Button>
+              </ButtonGroup>
+            </Box>
             <FormGroup sx={{ maxHeight: 200, overflow: 'auto' }}>
               <Box sx={{ 
                 display: 'grid', 
