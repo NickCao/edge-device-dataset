@@ -62,9 +62,12 @@ export function calculateArithmeticIntensity(model: ModelSpecs): number {
   // Combine factors
   let arithmeticIntensity = baseIntensity * attentionMultiplier * batchMultiplier;
   
-  // Apply realistic bounds based on transformer architecture
-  // Generation phase typically ranges from 0.5 to 50 ops/byte depending on model size and quantization
-  arithmeticIntensity = Math.max(0.5, Math.min(arithmeticIntensity, 100));
+  // Apply realistic lower bound only - high values are legitimate for:
+  // - Highly quantized models (INT4/INT8)
+  // - Large batch sizes 
+  // - Long context lengths
+  // - Compute-bound workloads (prefill phase)
+  arithmeticIntensity = Math.max(0.5, arithmeticIntensity);
   
   return arithmeticIntensity;
 }
@@ -130,12 +133,60 @@ export function determineBottleneck(opsToByteRatio: number, arithmeticIntensity:
 }
 
 /**
+ * Check if model fits in GPU memory and calculate memory utilization
+ */
+function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
+  modelSizeGB: number;
+  memoryUtilization: number;
+  hasMemoryWarning: boolean;
+  memoryWarningMessage?: string;
+} {
+  const modelSizeBytes = calculateModelSizeBytes(model);
+  const modelSizeGB = modelSizeBytes / (1024 ** 3); // Convert to GB
+  const gpuMemoryGB = gpu.memorySize;
+  
+  // Calculate memory utilization including overhead
+  // Typical overhead: ~20% for CUDA context, activations, etc.
+  const memoryOverheadMultiplier = 1.2;
+  const totalMemoryNeeded = modelSizeGB * memoryOverheadMultiplier;
+  
+  // Add memory for KV cache (depends on sequence length and batch size)
+  const kvCacheGB = (model.sequenceLength * model.batchSize * model.parameters * 2 * 2) / (1024 ** 3); // Rough estimate
+  const totalMemoryWithKV = totalMemoryNeeded + kvCacheGB;
+  
+  const memoryUtilization = (totalMemoryWithKV / gpuMemoryGB) * 100;
+  
+  let hasMemoryWarning = false;
+  let memoryWarningMessage: string | undefined;
+  
+  if (totalMemoryWithKV > gpuMemoryGB) {
+    hasMemoryWarning = true;
+    const shortfall = totalMemoryWithKV - gpuMemoryGB;
+    memoryWarningMessage = `Model requires ${totalMemoryWithKV.toFixed(1)}GB but GPU only has ${gpuMemoryGB}GB. Shortfall: ${shortfall.toFixed(1)}GB. Consider using a smaller model, better quantization, or a GPU with more memory.`;
+  } else if (memoryUtilization > 90) {
+    hasMemoryWarning = true;
+    memoryWarningMessage = `High memory usage (${memoryUtilization.toFixed(1)}%). May cause performance issues or OOM errors. Consider reducing batch size or sequence length.`;
+  } else if (memoryUtilization > 80) {
+    hasMemoryWarning = true;
+    memoryWarningMessage = `Moderate memory usage (${memoryUtilization.toFixed(1)}%). Monitor for potential memory pressure.`;
+  }
+  
+  return {
+    modelSizeGB,
+    memoryUtilization: Math.min(memoryUtilization, 999), // Cap at 999% for display
+    hasMemoryWarning,
+    memoryWarningMessage,
+  };
+}
+
+/**
  * Main calculation function that computes all performance metrics
  */
 export function calculatePerformance(gpu: GPUSpecs, model: ModelSpecs): CalculationResults {
   const opsToByteRatio = calculateOpsToByteRatio(gpu);
   const arithmeticIntensity = calculateArithmeticIntensity(model);
   const bottleneck = determineBottleneck(opsToByteRatio, arithmeticIntensity);
+  const memoryCheck = checkMemoryFit(gpu, model);
   
   const prefillTime = calculatePrefillTime(gpu, model);
   const timePerToken = calculateTimePerToken(gpu, model);
@@ -156,5 +207,6 @@ export function calculatePerformance(gpu: GPUSpecs, model: ModelSpecs): Calculat
     timePerToken,
     totalGenerationTime,
     throughputTokensPerSecond,
+    ...memoryCheck,
   };
 }

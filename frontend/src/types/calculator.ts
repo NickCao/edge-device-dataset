@@ -32,6 +32,10 @@ export interface CalculationResults {
   timePerToken: number; // ms
   totalGenerationTime: number; // ms
   throughputTokensPerSecond: number;
+  modelSizeGB: number; // Model size in GB
+  memoryUtilization: number; // Percentage of GPU memory used
+  hasMemoryWarning: boolean; // True if model doesn't fit in GPU memory
+  memoryWarningMessage?: string; // Warning message if memory insufficient
 }
 
 export interface ComparisonResult {

@@ -14,6 +14,8 @@ import {
   Bolt as BoltIcon,
   TrendingUp as TrendingUpIcon,
   Speed as SpeedIcon,
+  Memory as MemoryIcon,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
 import type { GPUSpecs, CalculationResults } from '../types/calculator';
 
@@ -22,7 +24,7 @@ interface ResultsDisplayProps {
   results: CalculationResults;
 }
 
-export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
+export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) => {
   const formatTime = (ms: number): string => {
     if (ms < 1000) return `${ms.toFixed(1)}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
@@ -37,6 +39,43 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Memory Check Warning */}
+      {results.hasMemoryWarning && (
+        <Alert 
+          severity={results.memoryUtilization > 100 ? 'error' : 'warning'} 
+          icon={results.memoryUtilization > 100 ? <ErrorIcon /> : <WarningIcon />}
+          sx={{ p: 2 }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            {results.memoryUtilization > 100 ? 'Memory Overflow!' : 'Memory Warning'}
+          </Typography>
+          <Typography variant="body2">
+            {results.memoryWarningMessage}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Memory Usage Display */}
+      <Paper sx={{ p: 2, backgroundColor: results.hasMemoryWarning ? 'error.light' : 'info.light', color: results.hasMemoryWarning ? 'error.contrastText' : 'info.contrastText' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <MemoryIcon sx={{ fontSize: 18 }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+            Memory Usage
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            {results.modelSizeGB.toFixed(1)} GB
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            {results.memoryUtilization.toFixed(1)}%
+          </Typography>
+        </Box>
+        <Typography variant="caption" sx={{ opacity: 0.9 }}>
+          Model size + overhead / {gpu.memorySize} GB total GPU memory
+        </Typography>
+      </Paper>
+
       {/* Bottleneck Analysis */}
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
         <Paper sx={{ p: 2, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
