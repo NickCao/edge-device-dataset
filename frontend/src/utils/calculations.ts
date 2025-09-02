@@ -17,15 +17,19 @@ function calculateModelSizeBytes(model: ModelSpecs): number {
 }
 
 /**
- * Calculate the operations-to-byte ratio of a GPU
+ * Calculate the operations-to-byte ratio of a GPU scaled by model quantization
  * This tells us how many FLOPS we can complete for every byte of memory access
+ * Lower precision quantization increases effective compute throughput
  */
-export function calculateOpsToByteRatio(gpu: GPUSpecs): number {
-  // Convert TFLOPS to FLOPS and GB/s to bytes/s
-  const computeFlops = gpu.computeBandwidth * 1e12; // TFLOPS to FLOPS
+export function calculateOpsToByteRatio(gpu: GPUSpecs, model: ModelSpecs): number {
+  const quantInfo = getQuantizationInfo(model.quantization);
+  
+  // Scale compute bandwidth based on quantization efficiency
+  // Lower precision operations can achieve higher throughput
+  const effectiveComputeFlops = gpu.computeBandwidth * 1e12 * quantInfo.computeMultiplier; // TFLOPS to FLOPS, scaled
   const memoryBytesPerSecond = gpu.memoryBandwidth * 1e9; // GB/s to bytes/s
   
-  return computeFlops / memoryBytesPerSecond;
+  return effectiveComputeFlops / memoryBytesPerSecond;
 }
 
 /**
@@ -38,10 +42,11 @@ export function calculateOpsToByteRatio(gpu: GPUSpecs): number {
  * arithmetic_intensity = total_compute / total_memory_movement
  */
 export function calculateArithmeticIntensity(model: ModelSpecs): number {
-  // For Llama-style transformers, estimate model dimensions
-  // Based on standard transformer architectures
-  const d = estimateModelDimension(model.parameters); // hidden dimension
-  const N = model.sequenceLength; // sequence length
+  // Use dimensions from model configuration
+  // N = sequence length (context length for attention calculation)
+  // d = attention head dimension
+  const N = model.sequenceLength; // Use the sequence length as N in the equation
+  const d = model.headDimension || 128; // Default to Llama 2 7B if not specified
   
   // From Baseten's detailed attention breakdown:
   // Memory movement in bytes (accounting for quantization):
@@ -63,25 +68,6 @@ export function calculateArithmeticIntensity(model: ModelSpecs): number {
   arithmeticIntensity = arithmeticIntensity * model.batchSize;
   
   return Math.max(0.1, arithmeticIntensity); // Minimum realistic bound
-}
-
-/**
- * Estimate model hidden dimension based on parameter count
- * Based on standard transformer scaling relationships
- */
-function estimateModelDimension(parameters: number): number {
-  // Standard transformer relationships (approximate)
-  // 7B models typically have d_model = 4096
-  // 13B models typically have d_model = 5120
-  // 70B models typically have d_model = 8192
-  
-  if (parameters <= 1) return 2048;      // Small models
-  else if (parameters <= 3) return 3072; // 3B models  
-  else if (parameters <= 7) return 4096; // 7B models
-  else if (parameters <= 13) return 5120; // 13B models
-  else if (parameters <= 30) return 6656; // 30B models
-  else if (parameters <= 65) return 8192; // 65B models
-  else return Math.round(8192 * Math.sqrt(parameters / 65)); // Larger models
 }
 
 /**
@@ -145,6 +131,26 @@ export function determineBottleneck(opsToByteRatio: number, arithmeticIntensity:
 }
 
 /**
+ * Calculate KV cache memory usage per token
+ * Using formula: kv_cache_size = 2 * n_layers * d_model * bytes_per_param (for key + value)
+ * where d_model = d_head * n_heads
+ */
+function calculateKVCachePerToken(model: ModelSpecs): number {
+  // Use hardcoded model architecture parameters
+  const nLayers = model.nLayers || 32; // Default to Llama 2 7B if not specified
+  const dHead = model.headDimension || 128; // Default to Llama 2 7B if not specified
+  const nHeads = model.nHeads || 32; // Default to Llama 2 7B if not specified
+  const dModel = dHead * nHeads; // Calculate d_model from d_head * n_heads
+  const quantInfo = getQuantizationInfo(model.quantization);
+  
+  // KV cache stores both key and value for each layer, for each token
+  // Formula: 2 * n_layers * d_model * bytes_per_param (key + value)
+  const kvCacheBytesPerToken = 2 * nLayers * dModel * quantInfo.bytesPerParameter;
+  
+  return kvCacheBytesPerToken / (1024 ** 3); // Convert to GB
+}
+
+/**
  * Check if model fits in GPU memory and calculate memory utilization
  */
 function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
@@ -152,6 +158,10 @@ function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
   memoryUtilization: number;
   hasMemoryWarning: boolean;
   memoryWarningMessage?: string;
+  kvCachePerTokenGB: number;
+  freeMemoryForKVCacheGB: number;
+  maxKVCacheTokens: number;
+  maxBatchSize: number;
 } {
   const modelSizeBytes = calculateModelSizeBytes(model);
   const modelSizeGB = modelSizeBytes / (1024 ** 3); // Convert to GB
@@ -162,9 +172,19 @@ function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
   const memoryOverheadMultiplier = 1.2;
   const totalMemoryNeeded = modelSizeGB * memoryOverheadMultiplier;
   
-  // Add memory for KV cache (depends on sequence length and batch size)
-  const kvCacheGB = (model.sequenceLength * model.batchSize * model.parameters * 2 * 2) / (1024 ** 3); // Rough estimate
-  const totalMemoryWithKV = totalMemoryNeeded + kvCacheGB;
+  // Calculate KV cache memory usage using proper formula
+  const kvCachePerTokenGB = calculateKVCachePerToken(model);
+  const currentKVCacheGB = kvCachePerTokenGB * model.sequenceLength * model.batchSize;
+  const totalMemoryWithKV = totalMemoryNeeded + currentKVCacheGB;
+  
+  // Calculate free memory available for KV cache
+  const freeMemoryForKVCacheGB = Math.max(0, gpuMemoryGB - totalMemoryNeeded);
+  
+  // Calculate maximum tokens that can fit in KV cache
+  const maxKVCacheTokens = kvCachePerTokenGB > 0 ? Math.floor(freeMemoryForKVCacheGB / kvCachePerTokenGB) : 0;
+  
+  // Calculate maximum batch size based on available memory
+  const maxBatchSize = model.sequenceLength > 0 ? Math.floor(maxKVCacheTokens / model.sequenceLength) : 0;
   
   const memoryUtilization = (totalMemoryWithKV / gpuMemoryGB) * 100;
   
@@ -188,6 +208,10 @@ function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
     memoryUtilization: Math.min(memoryUtilization, 999), // Cap at 999% for display
     hasMemoryWarning,
     memoryWarningMessage,
+    kvCachePerTokenGB,
+    freeMemoryForKVCacheGB,
+    maxKVCacheTokens,
+    maxBatchSize,
   };
 }
 
@@ -195,7 +219,7 @@ function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
  * Main calculation function that computes all performance metrics
  */
 export function calculatePerformance(gpu: GPUSpecs, model: ModelSpecs): CalculationResults {
-  const opsToByteRatio = calculateOpsToByteRatio(gpu);
+  const opsToByteRatio = calculateOpsToByteRatio(gpu, model);
   const arithmeticIntensity = calculateArithmeticIntensity(model);
   const bottleneck = determineBottleneck(opsToByteRatio, arithmeticIntensity);
   const memoryCheck = checkMemoryFit(gpu, model);

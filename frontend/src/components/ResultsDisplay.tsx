@@ -76,6 +76,52 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
         </Typography>
       </Paper>
 
+      {/* KV Cache Analysis */}
+      <Paper sx={{ p: 2, backgroundColor: 'warning.light', color: 'warning.contrastText' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <MemoryIcon sx={{ fontSize: 18 }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+            KV Cache Analysis
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 1 }}>
+          <Box>
+            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+              Per Token
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              {(results.kvCachePerTokenGB * 1024 * 1024).toFixed(2)} MB
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+              Free Memory
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              {results.freeMemoryForKVCacheGB.toFixed(1)} GB
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+          <Box>
+            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+              Max Tokens
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              {formatNumber(results.maxKVCacheTokens, 0)}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+              Max Batch Size
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              {results.maxBatchSize}
+            </Typography>
+          </Box>
+        </Box>
+      </Paper>
+
       {/* Bottleneck Analysis */}
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
         <Paper sx={{ p: 2, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>

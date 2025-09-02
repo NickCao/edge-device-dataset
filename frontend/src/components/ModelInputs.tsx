@@ -10,6 +10,7 @@ import {
   Paper,
   Tooltip,
   IconButton,
+  Divider,
 } from '@mui/material';
 import { Info as InfoIcon } from '@mui/icons-material';
 import type { ModelSpecs, QuantizationType } from '../types/calculator';
@@ -21,12 +22,22 @@ interface ModelInputsProps {
 }
 
 const COMMON_MODELS = [
-  { name: 'Llama 2 7B', parameters: 7 },
-  { name: 'Llama 2 13B', parameters: 13 },
-  { name: 'Llama 2 70B', parameters: 70 },
-  { name: 'Mistral 7B', parameters: 7 },
-  { name: 'GPT-3.5 equivalent', parameters: 175 },
-  { name: 'Custom', parameters: 0 },
+  { 
+    name: 'Llama 2 7B', 
+    parameters: 7, 
+    sequenceLength: 4096, // N - context length
+    headDimension: 128,   // d_head - attention head dimension
+    nLayers: 32,          // number of transformer layers
+    nHeads: 32           // number of attention heads (d_model = d_head * n_heads = 128 * 32 = 4096)
+  },
+  { 
+    name: 'Custom', 
+    parameters: 0, 
+    sequenceLength: 2048, 
+    headDimension: 128,
+    nLayers: 32,
+    nHeads: 32
+  },
 ];
 
 export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelChange }) => {
@@ -34,9 +45,17 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
     onModelChange({ ...modelSpecs, [field]: value });
   };
 
-  const handlePresetChange = (parameters: number) => {
-    if (parameters > 0) {
-      onModelChange({ ...modelSpecs, parameters });
+  const handlePresetChange = (modelName: string) => {
+    const selectedModel = COMMON_MODELS.find(m => m.name === modelName);
+    if (selectedModel && selectedModel.parameters > 0) {
+      onModelChange({ 
+        ...modelSpecs, 
+        parameters: selectedModel.parameters,
+        sequenceLength: selectedModel.sequenceLength,
+        headDimension: selectedModel.headDimension,
+        nLayers: selectedModel.nLayers,
+        nHeads: selectedModel.nHeads
+      });
     }
   };
 
@@ -48,17 +67,19 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* Model Preset Selector */}
       <FormControl fullWidth size="small">
-        <InputLabel id="model-preset-label">Model Preset</InputLabel>
+        <InputLabel id="model-select-label">Model Preset</InputLabel>
         <Select
-          labelId="model-preset-label"
+          labelId="model-select-label"
+          value={COMMON_MODELS.find(m => 
+            m.parameters === modelSpecs.parameters &&
+            m.sequenceLength === modelSpecs.sequenceLength &&
+            m.headDimension === modelSpecs.headDimension &&
+            m.nLayers === modelSpecs.nLayers &&
+            m.nHeads === modelSpecs.nHeads
+          )?.name || 'Custom'}
           label="Model Preset"
-          defaultValue=""
-          onChange={(e) => {
-            const model = COMMON_MODELS.find(m => m.name === e.target.value);
-            if (model) handlePresetChange(model.parameters);
-          }}
+          onChange={(e) => handlePresetChange(e.target.value as string)}
         >
-          <MenuItem value="">Select a model...</MenuItem>
           {COMMON_MODELS.map((model) => (
             <MenuItem key={model.name} value={model.name}>
               {model.name}
@@ -78,7 +99,6 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
           fullWidth
           placeholder="7"
           inputProps={{ min: 0.1, step: 0.1 }}
-          helperText={`~${modelSizeGB.toFixed(1)} GB (${modelSpecs.quantization})`}
         />
         <Tooltip title="Total parameters (e.g., 7 for Llama 2 7B)" placement="top">
           <IconButton size="small">
@@ -111,24 +131,88 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
         </Tooltip>
       </Box>
 
-      {/* Sequence Length */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <TextField
-          label="Max Sequence Length"
-          type="number"
-          value={modelSpecs.sequenceLength}
-          onChange={(e) => handleInputChange('sequenceLength', parseInt(e.target.value) || 0)}
-          size="small"
-          fullWidth
-          placeholder="2048"
-          inputProps={{ min: 1, step: 1 }}
-        />
-        <Tooltip title="Context window size" placement="top">
-          <IconButton size="small">
-            <InfoIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+                {/* Context Length */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              label="Context Length (N)"
+              type="number"
+              value={modelSpecs.sequenceLength}
+              onChange={(e) => handleInputChange('sequenceLength', parseInt(e.target.value) || 0)}
+              size="small"
+              fullWidth
+              placeholder="4096"
+              inputProps={{ min: 1, step: 1 }}
+            />
+            <Tooltip title="N - context window size used in attention equation (4096 for Llama 2 7B)" placement="top">
+              <IconButton size="small">
+                <InfoIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {/* Head Dimension */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              label="Attention Head Dimension (d)"
+              type="number"
+              value={modelSpecs.headDimension || 128}
+              onChange={(e) => handleInputChange('headDimension', parseInt(e.target.value) || 128)}
+              size="small"
+              fullWidth
+              placeholder="128"
+              inputProps={{ min: 1, step: 1 }}
+            />
+            <Tooltip title="d - dimension of a single attention head (128 for Llama 2 7B)" placement="top">
+              <IconButton size="small">
+                <InfoIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {/* Number of Layers */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              label="Number of Layers"
+              type="number"
+              value={modelSpecs.nLayers || 32}
+              onChange={(e) => handleInputChange('nLayers', parseInt(e.target.value) || 32)}
+              size="small"
+              fullWidth
+              placeholder="32"
+              inputProps={{ min: 1, step: 1 }}
+            />
+            <Tooltip title="Number of transformer layers (32 for Llama 2 7B)" placement="top">
+              <IconButton size="small">
+                <InfoIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {/* Number of Heads */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              label="Number of Heads (n_heads)"
+              type="number"
+              value={modelSpecs.nHeads || 32}
+              onChange={(e) => handleInputChange('nHeads', parseInt(e.target.value) || 32)}
+              size="small"
+              fullWidth
+              placeholder="32"
+              inputProps={{ min: 1, step: 1 }}
+            />
+            <Tooltip title="Number of attention heads (32 for Llama 2 7B, d_model = d_head * n_heads)" placement="top">
+              <IconButton size="small">
+                <InfoIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+      {/* Separator */}
+      <Divider sx={{ my: 2 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'medium' }}>
+          Inference Parameters
+        </Typography>
+      </Divider>
 
       {/* Batch Size */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -201,6 +285,12 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
           </Typography>
           <Typography variant="caption">
             Batch size: {modelSpecs.batchSize}
+          </Typography>
+          <Typography variant="caption">
+            Attention dimensions: N={modelSpecs.sequenceLength}, d={modelSpecs.headDimension || 128}
+          </Typography>
+          <Typography variant="caption">
+            Architecture: {modelSpecs.nLayers || 32} layers, {modelSpecs.nHeads || 32} heads, d_model={(modelSpecs.headDimension || 128) * (modelSpecs.nHeads || 32)}
           </Typography>
           <Typography variant="caption">
             Quantization: {modelSpecs.quantization} ({quantInfo.bytesPerParameter}x bytes/param)

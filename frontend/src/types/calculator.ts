@@ -7,11 +7,14 @@ export interface GPUSpecs {
 
 export interface ModelSpecs {
   parameters: number; // in billions
-  sequenceLength: number;
+  sequenceLength: number; // N - context length for attention calculation
   batchSize: number;
   promptTokens: number;
   outputTokens: number;
   quantization: QuantizationType;
+  headDimension?: number; // d_head - dimension of a single attention head
+  nLayers?: number; // number of transformer layers
+  nHeads?: number; // number of attention heads (d_model = d_head * n_heads)
 }
 
 export type QuantizationType = 'FP32' | 'FP16' | 'INT8' | 'INT4';
@@ -36,6 +39,10 @@ export interface CalculationResults {
   memoryUtilization: number; // Percentage of GPU memory used
   hasMemoryWarning: boolean; // True if model doesn't fit in GPU memory
   memoryWarningMessage?: string; // Warning message if memory insufficient
+  kvCachePerTokenGB: number; // KV cache memory per token in GB
+  freeMemoryForKVCacheGB: number; // Available memory for KV cache in GB
+  maxKVCacheTokens: number; // Maximum tokens that can fit in KV cache
+  maxBatchSize: number; // Maximum batch size based on available memory
 }
 
 export interface ComparisonResult {
@@ -204,9 +211,12 @@ export const COMMON_GPUS: GPUSpecs[] = [
 
 export const DEFAULT_MODEL: ModelSpecs = {
   parameters: 7, // 7B parameters
-  sequenceLength: 2048,
+  sequenceLength: 4096, // N - Llama 2 7B context length for attention calculation
   batchSize: 1,
   promptTokens: 350,
   outputTokens: 150,
   quantization: 'FP16',
+  headDimension: 128, // d_head - Llama 2 7B attention head dimension
+  nLayers: 32, // Llama 2 7B has 32 layers
+  nHeads: 32, // Llama 2 7B has 32 attention heads (d_model = 128 * 32 = 4096)
 };
