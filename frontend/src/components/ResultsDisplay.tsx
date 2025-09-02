@@ -76,7 +76,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, opacity: 0.8 }}>
           <Typography variant="caption">Model: {results.modelSizeGB.toFixed(1)} GB</Typography>
-          <Typography variant="caption">KV Cache: {(results.currentKVCacheGB * 1024).toFixed(0)} MB</Typography>
+          <Typography variant="caption">KV Cache: {(results.currentKVCacheGB * 1000).toFixed(0)} MB</Typography>
         </Box>
       </Paper>
 
@@ -94,7 +94,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ gpu, results }) 
               Per Token
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              {(results.kvCachePerTokenGB * 1024).toFixed(2)} MB
+              {(results.kvCachePerTokenGB * 1000).toFixed(2)} MB
             </Typography>
           </Box>
           <Box>

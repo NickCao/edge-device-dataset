@@ -13,7 +13,7 @@ function getQuantizationInfo(quantization: string): QuantizationInfo {
  */
 function calculateModelSizeBytes(model: ModelSpecs): number {
   const quantInfo = getQuantizationInfo(model.quantization);
-  return model.parameters * (1024 ** 3) * quantInfo.bytesPerParameter;
+  return model.parameters * 1e9 * quantInfo.bytesPerParameter;
 }
 
 /**
@@ -147,7 +147,7 @@ function calculateKVCachePerToken(model: ModelSpecs): number {
   // Formula: 2 * n_layers * d_model * bytes_per_param (key + value)
   const kvCacheBytesPerToken = 2 * nLayers * dModel * quantInfo.bytesPerParameter;
   
-  return kvCacheBytesPerToken / (1024 ** 3); // Convert to GB
+  return kvCacheBytesPerToken / 1e9; // Convert to GB
 }
 
 /**
@@ -166,7 +166,7 @@ function checkMemoryFit(gpu: GPUSpecs, model: ModelSpecs): {
   currentKVCacheGB: number;
 } {
   const modelSizeBytes = calculateModelSizeBytes(model);
-  const modelSizeGB = modelSizeBytes / (1024 ** 3); // Convert to GB
+  const modelSizeGB = modelSizeBytes / (1e9); // Convert to GB
   const gpuMemoryGB = gpu.memorySize;
   
   const totalMemoryNeeded = modelSizeGB;
