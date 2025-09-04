@@ -46,6 +46,22 @@ const COMMON_MODELS = [
     nLayers: 64,
     nHeads: 80
   },
+  {
+    name: 'Granite 3.3 2B',
+    parameters: 2,
+    sequenceLength: 131072,
+    headDimension: 64,
+    nLayers: 40,
+    nHeads: 32
+  },
+  {
+    name: 'Granite 3.3 8B',
+    parameters: 8,
+    sequenceLength: 131072,
+    headDimension: 128,
+    nLayers: 40,
+    nHeads: 32
+  },
   { 
     name: 'Custom', 
     parameters: 0, 
