@@ -17,6 +17,11 @@ export interface ModelSpecs {
   nHeads?: number; // number of attention heads (d_model = d_head * n_heads)
 }
 
+export interface SystemOverhead {
+  prefillCoefficient: number; // multiplier for prefill time calculations (default: 1.0)
+  decodeCoefficient: number; // multiplier for decode/time-per-token calculations (default: 1.0)
+}
+
 export type QuantizationType = 'FP32' | 'FP16' | 'INT8' | 'INT4';
 
 export interface QuantizationInfo {
@@ -223,4 +228,9 @@ export const DEFAULT_MODEL: ModelSpecs = {
   headDimension: 128, // d_head - Llama 2 7B attention head dimension
   nLayers: 32, // Llama 2 7B has 32 layers
   nHeads: 32, // Llama 2 7B has 32 attention heads (d_model = 128 * 32 = 4096)
+};
+
+export const DEFAULT_SYSTEM_OVERHEAD: SystemOverhead = {
+  prefillCoefficient: 1.0, // default multiplier for prefill time calculations
+  decodeCoefficient: 1.0, // default multiplier for decode time calculations
 };

@@ -16,12 +16,14 @@ import {
   AccessTime as ClockIcon,
   Calculate as CalculateIcon,
   BarChart as BarChartIcon,
+  Tune as TuneIcon,
 } from '@mui/icons-material';
-import type { GPUSpecs, ModelSpecs, CalculationResults } from '../types/calculator';
-import { COMMON_GPUS, DEFAULT_MODEL } from '../types/calculator';
+import type { GPUSpecs, ModelSpecs, CalculationResults, SystemOverhead } from '../types/calculator';
+import { COMMON_GPUS, DEFAULT_MODEL, DEFAULT_SYSTEM_OVERHEAD } from '../types/calculator';
 import { calculatePerformance } from '../utils/calculations';
 import { GPUSelector } from './GPUSelector';
 import { ModelInputs } from './ModelInputs';
+import { SystemOverheadInputs } from './SystemOverheadInputs';
 import { ResultsDisplay } from './ResultsDisplay';
 import { ComparisonChart } from './ComparisonChart';
 
@@ -50,6 +52,7 @@ function TabPanel(props: TabPanelProps) {
 export const AIModelCalculator: React.FC = () => {
   const [selectedGPU, setSelectedGPU] = useState<GPUSpecs>(COMMON_GPUS[1]); // Default to A10
   const [modelSpecs, setModelSpecs] = useState<ModelSpecs>(DEFAULT_MODEL);
+  const [systemOverhead, setSystemOverhead] = useState<SystemOverhead>(DEFAULT_SYSTEM_OVERHEAD);
   const [results, setResults] = useState<CalculationResults | null>(null);
   const [tabValue, setTabValue] = useState(0);
 
@@ -57,13 +60,13 @@ export const AIModelCalculator: React.FC = () => {
     setTabValue(newValue);
   };
 
-  // Calculate results whenever GPU or model specs change
+  // Calculate results whenever GPU, model specs, or system overhead change
   useEffect(() => {
     if (selectedGPU && modelSpecs) {
-      const calculationResults = calculatePerformance(selectedGPU, modelSpecs);
+      const calculationResults = calculatePerformance(selectedGPU, modelSpecs, systemOverhead);
       setResults(calculationResults);
     }
-  }, [selectedGPU, modelSpecs]);
+  }, [selectedGPU, modelSpecs, systemOverhead]);
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -145,10 +148,11 @@ export const AIModelCalculator: React.FC = () => {
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Box sx={{ 
                 display: 'flex', 
-                flexDirection: { xs: 'column', md: 'row' },
+                flexDirection: { xs: 'column', lg: 'row' },
                 gap: 3 
               }}>
-                <Box sx={{ flex: 1 }}>
+                {/* GPU and System Overhead Column */}
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <Card elevation={3}>
                     <CardContent sx={{ p: 3 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -163,8 +167,24 @@ export const AIModelCalculator: React.FC = () => {
                       />
                     </CardContent>
                   </Card>
+
+                  <Card elevation={3}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <TuneIcon sx={{ mr: 1, color: 'primary.main' }} />
+                        <Typography variant="h6" component="h2">
+                          System Overhead
+                        </Typography>
+                      </Box>
+                      <SystemOverheadInputs
+                        systemOverhead={systemOverhead}
+                        onSystemOverheadChange={setSystemOverhead}
+                      />
+                    </CardContent>
+                  </Card>
                 </Box>
 
+                {/* Model Configuration Column */}
                 <Box sx={{ flex: 1 }}>
                   <Card elevation={3}>
                     <CardContent sx={{ p: 3 }}>

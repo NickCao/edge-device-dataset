@@ -1,4 +1,4 @@
-import type { GPUSpecs, ModelSpecs, CalculationResults, QuantizationInfo } from '../types/calculator';
+import type { GPUSpecs, ModelSpecs, CalculationResults, QuantizationInfo, SystemOverhead } from '../types/calculator';
 import { QUANTIZATION_OPTIONS } from '../types/calculator';
 
 /**
@@ -74,7 +74,7 @@ export function calculateArithmeticIntensity(model: ModelSpecs): number {
  * Calculate time for prefill phase (processing input tokens)
  * Assumes compute-bound operation during prefill
  */
-export function calculatePrefillTime(gpu: GPUSpecs, model: ModelSpecs): number {
+export function calculatePrefillTime(gpu: GPUSpecs, model: ModelSpecs, systemOverhead?: SystemOverhead): number {
   // Prefill time = number of tokens * (number of parameters * 2 FLOP) / compute bandwidth
   // Factor of 2 accounts for forward pass operations
   // Quantization affects compute performance
@@ -82,20 +82,26 @@ export function calculatePrefillTime(gpu: GPUSpecs, model: ModelSpecs): number {
   const totalFlops = model.promptTokens * (model.parameters * 1e9) * 2;
   const effectiveComputeFlops = gpu.computeBandwidth * 1e12 * quantInfo.computeMultiplier;
   
-  return (totalFlops / effectiveComputeFlops) * 1000; // Convert to milliseconds
+  const baseTime = (totalFlops / effectiveComputeFlops) * 1000; // Convert to milliseconds
+  const prefillCoefficient = systemOverhead?.prefillCoefficient ?? 1.0;
+  
+  return baseTime * prefillCoefficient;
 }
 
 /**
  * Calculate time per token during generation phase
  * Assumes memory-bound operation for single token generation
  */
-export function calculateTimePerToken(gpu: GPUSpecs, model: ModelSpecs): number {
+export function calculateTimePerToken(gpu: GPUSpecs, model: ModelSpecs, systemOverhead?: SystemOverhead): number {
   // Time per token = model size in bytes / memory bandwidth
   // Model size depends on quantization
   const modelSizeBytes = calculateModelSizeBytes(model);
   const memoryBytesPerSecond = gpu.memoryBandwidth * 1e9;
   
-  return (modelSizeBytes / memoryBytesPerSecond) * 1000; // Convert to milliseconds
+  const baseTime = (modelSizeBytes / memoryBytesPerSecond) * 1000; // Convert to milliseconds
+  const decodeCoefficient = systemOverhead?.decodeCoefficient ?? 1.0;
+  
+  return baseTime * decodeCoefficient;
 }
 
 /**
@@ -242,14 +248,14 @@ function checkPerformanceWarning(throughput: number): {
 /**
  * Main calculation function that computes all performance metrics
  */
-export function calculatePerformance(gpu: GPUSpecs, model: ModelSpecs): CalculationResults {
+export function calculatePerformance(gpu: GPUSpecs, model: ModelSpecs, systemOverhead?: SystemOverhead): CalculationResults {
   const opsToByteRatio = calculateOpsToByteRatio(gpu, model);
   const arithmeticIntensity = calculateArithmeticIntensity(model);
   const bottleneck = determineBottleneck(opsToByteRatio, arithmeticIntensity);
   const memoryCheck = checkMemoryFit(gpu, model);
   
-  const prefillTime = calculatePrefillTime(gpu, model);
-  const timePerToken = calculateTimePerToken(gpu, model);
+  const prefillTime = calculatePrefillTime(gpu, model, systemOverhead);
+  const timePerToken = calculateTimePerToken(gpu, model, systemOverhead);
   const totalGenerationTime = calculateTotalGenerationTime(
     prefillTime,
     timePerToken,

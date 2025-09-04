@@ -35,7 +35,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import type { ComparisonResult, ModelSpecs } from '../types/calculator';
-import { COMMON_GPUS } from '../types/calculator';
+import { COMMON_GPUS, DEFAULT_SYSTEM_OVERHEAD } from '../types/calculator';
 import { calculatePerformance } from '../utils/calculations';
 
 interface ComparisonChartProps {
@@ -56,7 +56,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModel
   const filteredGPUs = COMMON_GPUS.filter(gpu => selectedGPUs.includes(gpu.name));
   const comparisons: ComparisonResult[] = currentModel ? filteredGPUs.map(gpu => ({
     gpu,
-    results: calculatePerformance(gpu, currentModel),
+    results: calculatePerformance(gpu, currentModel, DEFAULT_SYSTEM_OVERHEAD),
   })) : [];
 
   const handleGPUToggle = (gpuName: string) => {
