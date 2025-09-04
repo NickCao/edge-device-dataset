@@ -18,8 +18,8 @@ export interface ModelSpecs {
 }
 
 export interface SystemOverhead {
-  prefillCoefficient: number; // multiplier for prefill time calculations (default: 1.0)
-  decodeCoefficient: number; // multiplier for decode/time-per-token calculations (default: 1.0)
+  prefillEfficiencyPercent: number; // efficiency for prefill time calculations in percentage (default: 100)
+  decodeEfficiencyPercent: number; // efficiency for decode/time-per-token calculations in percentage (default: 100)
 }
 
 export type QuantizationType = 'FP32' | 'FP16' | 'INT8' | 'INT4';
@@ -231,6 +231,6 @@ export const DEFAULT_MODEL: ModelSpecs = {
 };
 
 export const DEFAULT_SYSTEM_OVERHEAD: SystemOverhead = {
-  prefillCoefficient: 1.0, // default multiplier for prefill time calculations
-  decodeCoefficient: 1.0, // default multiplier for decode time calculations
+  prefillEfficiencyPercent: 80, // default efficiency for prefill time calculations
+  decodeEfficiencyPercent: 80, // default efficiency for decode time calculations
 };

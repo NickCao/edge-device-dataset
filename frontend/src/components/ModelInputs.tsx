@@ -48,7 +48,7 @@ const COMMON_MODELS = [
   },
   {
     name: 'Granite 3.3 2B',
-    parameters: 2,
+    parameters: 2.53,
     sequenceLength: 131072,
     headDimension: 64,
     nLayers: 40,
@@ -56,7 +56,7 @@ const COMMON_MODELS = [
   },
   {
     name: 'Granite 3.3 8B',
-    parameters: 8,
+    parameters: 8.17,
     sequenceLength: 131072,
     headDimension: 128,
     nLayers: 40,

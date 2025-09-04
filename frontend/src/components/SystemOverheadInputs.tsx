@@ -25,38 +25,38 @@ export const SystemOverheadInputs: React.FC<SystemOverheadInputsProps> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {/* Prefill Coefficient */}
+      {/* Prefill Efficiency */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <TextField
-          label="Prefill Coefficient"
+          label="Prefill Efficiency (%)"
           type="number"
-          value={systemOverhead.prefillCoefficient}
-          onChange={(e) => handleInputChange('prefillCoefficient', parseFloat(e.target.value) || 1.0)}
+          value={systemOverhead.prefillEfficiencyPercent}
+          onChange={(e) => handleInputChange('prefillEfficiencyPercent', parseFloat(e.target.value) || 100)}
           size="small"
           fullWidth
-          placeholder="1.0"
-          inputProps={{ min: 0.1, max: 10.0, step: 0.1 }}
+          placeholder="100"
+          inputProps={{ min: 1, max: 200, step: 1 }}
         />
-        <Tooltip title="Multiplier for prefill time calculations (1.0 = theoretical baseline, >1.0 = slower, <1.0 = faster due to system overhead)" placement="top">
+        <Tooltip title="Efficiency of prefill operations as percentage (100% = theoretical baseline, <100% = slower due to overhead, >100% = faster due to optimizations)" placement="top">
           <IconButton size="small">
             <InfoIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
 
-      {/* Decode Coefficient */}
+      {/* Decode Efficiency */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <TextField
-          label="Decode Coefficient"
+          label="Decode Efficiency (%)"
           type="number"
-          value={systemOverhead.decodeCoefficient}
-          onChange={(e) => handleInputChange('decodeCoefficient', parseFloat(e.target.value) || 1.0)}
+          value={systemOverhead.decodeEfficiencyPercent}
+          onChange={(e) => handleInputChange('decodeEfficiencyPercent', parseFloat(e.target.value) || 100)}
           size="small"
           fullWidth
-          placeholder="1.0"
-          inputProps={{ min: 0.1, max: 10.0, step: 0.1 }}
+          placeholder="100"
+          inputProps={{ min: 1, max: 200, step: 1 }}
         />
-        <Tooltip title="Multiplier for decode/time-per-token calculations (1.0 = theoretical baseline, >1.0 = slower, <1.0 = faster due to system overhead)" placement="top">
+        <Tooltip title="Efficiency of decode/time-per-token operations as percentage (100% = theoretical baseline, <100% = slower due to overhead, >100% = faster due to optimizations)" placement="top">
           <IconButton size="small">
             <InfoIcon fontSize="small" />
           </IconButton>
@@ -70,18 +70,18 @@ export const SystemOverheadInputs: React.FC<SystemOverheadInputsProps> = ({
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           <Typography variant="caption">
-            Prefill multiplier: {systemOverhead.prefillCoefficient.toFixed(1)}x
+            Prefill efficiency: {systemOverhead.prefillEfficiencyPercent}%
           </Typography>
           <Typography variant="caption">
-            Decode multiplier: {systemOverhead.decodeCoefficient.toFixed(1)}x
+            Decode efficiency: {systemOverhead.decodeEfficiencyPercent}%
           </Typography>
           <Typography variant="caption">
-            {systemOverhead.prefillCoefficient === 1.0 && systemOverhead.decodeCoefficient === 1.0 
-              ? 'Using theoretical performance (no overhead)'
-              : `Adjusted for system overhead: ${
-                  systemOverhead.prefillCoefficient > 1.0 || systemOverhead.decodeCoefficient > 1.0
-                    ? 'slower than theoretical'
-                    : 'faster than theoretical'
+            {systemOverhead.prefillEfficiencyPercent === 100 && systemOverhead.decodeEfficiencyPercent === 100 
+              ? 'Using theoretical performance (100% efficiency)'
+              : `Performance impact: ${
+                  systemOverhead.prefillEfficiencyPercent < 100 || systemOverhead.decodeEfficiencyPercent < 100
+                    ? `${Math.min(systemOverhead.prefillEfficiencyPercent, systemOverhead.decodeEfficiencyPercent)}% efficiency (slower)`
+                    : `${Math.min(systemOverhead.prefillEfficiencyPercent, systemOverhead.decodeEfficiencyPercent)}% efficiency (optimized)`
                 }`
             }
           </Typography>

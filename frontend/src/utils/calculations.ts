@@ -83,9 +83,9 @@ export function calculatePrefillTime(gpu: GPUSpecs, model: ModelSpecs, systemOve
   const effectiveComputeFlops = gpu.computeBandwidth * 1e12 * quantInfo.computeMultiplier;
   
   const baseTime = (totalFlops / effectiveComputeFlops) * 1000; // Convert to milliseconds
-  const prefillCoefficient = systemOverhead?.prefillCoefficient ?? 1.0;
+  const prefillEfficiency = (systemOverhead?.prefillEfficiencyPercent ?? 100) / 100; // Convert percentage to multiplier
   
-  return baseTime * prefillCoefficient;
+  return baseTime / prefillEfficiency; // Lower efficiency = higher time
 }
 
 /**
@@ -99,9 +99,9 @@ export function calculateTimePerToken(gpu: GPUSpecs, model: ModelSpecs, systemOv
   const memoryBytesPerSecond = gpu.memoryBandwidth * 1e9;
   
   const baseTime = (modelSizeBytes / memoryBytesPerSecond) * 1000; // Convert to milliseconds
-  const decodeCoefficient = systemOverhead?.decodeCoefficient ?? 1.0;
+  const decodeEfficiency = (systemOverhead?.decodeEfficiencyPercent ?? 100) / 100; // Convert percentage to multiplier
   
-  return baseTime * decodeCoefficient;
+  return baseTime / decodeEfficiency; // Lower efficiency = higher time
 }
 
 /**
