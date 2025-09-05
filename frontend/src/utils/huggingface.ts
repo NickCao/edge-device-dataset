@@ -18,6 +18,10 @@ interface HuggingFaceConfig {
   bos_token_id?: number;
   eos_token_id?: number;
   pad_token_id?: number;
+  // Parameter count fields that might be in config
+  num_parameters?: number;
+  total_params?: number;
+  _num_parameters?: number;
   [key: string]: any;
 }
 
@@ -114,16 +118,153 @@ export async function loadModelConfig(modelId: string): Promise<HuggingFaceConfi
 }
 
 /**
- * Estimate model parameters from config
+ * Load model.safetensors.index.json which contains parameter count
  */
-function estimateParameters(config: HuggingFaceConfig): number {
-  const {
-    hidden_size = 4096,
-    intermediate_size = 11008,
-    num_hidden_layers = 32,
-    num_attention_heads = 32,
-    vocab_size = 32000,
-  } = config;
+export async function loadSafetensorsIndex(modelId: string): Promise<any> {
+  try {
+    const indexUrl = `https://huggingface.co/${modelId}/resolve/main/model.safetensors.index.json`;
+    const response = await fetch(indexUrl);
+    
+    if (!response.ok) {
+      console.warn(`Could not fetch safetensors index for ${modelId}: ${response.statusText}`);
+      return null;
+    }
+    
+    const safetensorsIndex = await response.json();
+    return safetensorsIndex;
+  } catch (error) {
+    console.warn('Error loading safetensors index:', error);
+    return null;
+  }
+}
+
+/**
+ * Load additional model information from Hugging Face Hub API
+ */
+export async function loadModelInfo(modelId: string): Promise<any> {
+  try {
+    const response = await fetch(`https://huggingface.co/api/models/${modelId}`);
+    
+    if (!response.ok) {
+      // Don't throw error for API info, just return null
+      console.warn(`Could not fetch model info for ${modelId}: ${response.statusText}`);
+      return null;
+    }
+    
+    const modelInfo = await response.json();
+    return modelInfo;
+  } catch (error) {
+    console.warn('Error loading model info:', error);
+    return null;
+  }
+}
+
+/**
+ * Get model parameters from multiple sources with priority order
+ * Priority: 1) safetensors total_size / data_type_size, 2) safetensors metadata, 3) config fields, 4) API model info, 5) estimation
+ */
+function getModelParameters(config: HuggingFaceConfig, safetensorsIndex: any = null, modelInfo: any = null): number {
+  // Get model name for debugging only
+  const modelName = config._name_or_path || modelInfo?.id || 'unknown';
+
+  // Helper function to get bytes per parameter from torch_dtype
+  const getBytesPerParameter = (torchDtype: string | undefined): number => {
+    if (!torchDtype) return 2; // Default to FP16 (2 bytes)
+    
+    const dtype = torchDtype.toLowerCase();
+    if (dtype.includes('float32') || dtype.includes('fp32')) return 4;
+    if (dtype.includes('float16') || dtype.includes('fp16') || dtype.includes('bfloat16') || dtype.includes('bf16')) return 2;
+    if (dtype.includes('int8')) return 1;
+    if (dtype.includes('int4')) return 0.5;
+    
+    return 2; // Default to FP16
+  };
+
+  // First priority: safetensors index total_size divided by data type size
+  if (safetensorsIndex && safetensorsIndex.metadata && safetensorsIndex.metadata.total_size) {
+    const totalSizeBytes = Number(safetensorsIndex.metadata.total_size);
+    
+    if (!isNaN(totalSizeBytes) && isFinite(totalSizeBytes) && totalSizeBytes > 0) {
+      const bytesPerParam = getBytesPerParameter(config.torch_dtype);
+      const totalParams = totalSizeBytes / bytesPerParam;
+      const paramsBillions = totalParams / 1_000_000_000;
+      
+      console.log(`Calculated ${paramsBillions.toFixed(2)}B parameters from safetensors total_size (${totalSizeBytes} bytes / ${bytesPerParam} bytes per param)`);
+      return paramsBillions;
+    }
+  }
+
+  // Helper function to validate and convert parameter count
+  const validateParamCount = (value: any): number | null => {
+    const num = Number(value);
+    if (isNaN(num) || !isFinite(num) || num <= 0) {
+      return null;
+    }
+    return num / 1_000_000_000; // Convert to billions
+  };
+
+  // Second priority: explicit parameter count fields in safetensors metadata
+  if (safetensorsIndex && safetensorsIndex.metadata) {
+    let paramCount = validateParamCount(safetensorsIndex.metadata.num_params);
+    if (paramCount !== null) return paramCount;
+
+    paramCount = validateParamCount(safetensorsIndex.metadata.total_params);
+    if (paramCount !== null) return paramCount;
+
+    paramCount = validateParamCount(safetensorsIndex.metadata.parameters);
+    if (paramCount !== null) return paramCount;
+  }
+
+  // Third priority: config file parameter fields
+  let paramCount = validateParamCount(config.num_parameters);
+  if (paramCount !== null) return paramCount;
+
+  paramCount = validateParamCount(config.total_params);
+  if (paramCount !== null) return paramCount;
+
+  paramCount = validateParamCount(config._num_parameters);
+  if (paramCount !== null) return paramCount;
+
+  // Fourth priority: model info API response
+  if (modelInfo) {
+    if (modelInfo.safetensors && modelInfo.safetensors.parameters) {
+      paramCount = validateParamCount(modelInfo.safetensors.parameters);
+      if (paramCount !== null) return paramCount;
+    }
+    
+    if (modelInfo.pytorch_model && modelInfo.pytorch_model.parameters) {
+      paramCount = validateParamCount(modelInfo.pytorch_model.parameters);
+      if (paramCount !== null) return paramCount;
+    }
+
+    if (modelInfo.transformersInfo && modelInfo.transformersInfo.parameters) {
+      paramCount = validateParamCount(modelInfo.transformersInfo.parameters);
+      if (paramCount !== null) return paramCount;
+    }
+  }
+
+  // Last resort: estimate from architecture
+  console.warn(`Could not find parameter count for ${modelName} in safetensors, config, or model info - falling back to estimation`);
+  const estimated = estimateParametersFromArchitecture(config);
+  
+  // Validate estimation result
+  if (isNaN(estimated) || !isFinite(estimated) || estimated <= 0) {
+    console.error(`Architecture estimation failed for ${modelName}, using default 7B`);
+    return 7.0; // Default to 7B if all else fails
+  }
+  
+  return estimated;
+}
+
+/**
+ * Fallback estimation when no parameter count is available
+ */
+function estimateParametersFromArchitecture(config: HuggingFaceConfig): number {
+  // Validate input values and provide safe defaults
+  const hidden_size = Math.max(Number(config.hidden_size) || 4096, 1);
+  const intermediate_size = Math.max(Number(config.intermediate_size) || 11008, 1);
+  const num_hidden_layers = Math.max(Number(config.num_hidden_layers) || 32, 1);
+  const vocab_size = Math.max(Number(config.vocab_size) || 32000, 1);
 
   // Rough estimation based on transformer architecture
   // This is a simplified calculation and may not be 100% accurate
@@ -140,8 +281,16 @@ function estimateParameters(config: HuggingFaceConfig): number {
   
   const total_params = embedding_params + attention_params + mlp_params + final_layer_norm;
   
-  // Convert to billions
-  return total_params / 1_000_000_000;
+  // Convert to billions and validate
+  const result = total_params / 1_000_000_000;
+  
+  // Ensure we don't return invalid values
+  if (isNaN(result) || !isFinite(result) || result <= 0) {
+    console.error('Architecture estimation produced invalid result, using 7B default');
+    return 7.0;
+  }
+  
+  return result;
 }
 
 /**
@@ -164,14 +313,21 @@ function getQuantizationFromTorchDtype(config: HuggingFaceConfig): QuantizationT
 /**
  * Convert Hugging Face config to ModelPreset
  */
-export function configToModelPreset(modelId: string, config: HuggingFaceConfig): ModelPreset {
-  const parameters = estimateParameters(config);
-  const sequenceLength = config.max_position_embeddings || 4096;
-  const headDimension = config.hidden_size && config.num_attention_heads 
-    ? config.hidden_size / config.num_attention_heads 
-    : 128;
-  const nLayers = config.num_hidden_layers || 32;
-  const nHeads = config.num_attention_heads || 32;
+export function configToModelPreset(modelId: string, config: HuggingFaceConfig, safetensorsIndex: any = null, modelInfo: any = null): ModelPreset {
+  // Helper to safely convert and validate numeric values
+  const safeNumber = (value: any, defaultValue: number): number => {
+    const num = Number(value);
+    return (isNaN(num) || !isFinite(num) || num <= 0) ? defaultValue : num;
+  };
+
+  const parameters = getModelParameters(config, safetensorsIndex, modelInfo);
+  const sequenceLength = safeNumber(config.max_position_embeddings, 4096);
+  const hiddenSize = safeNumber(config.hidden_size, 4096);
+  const numAttentionHeads = safeNumber(config.num_attention_heads, 32);
+  
+  const headDimension = hiddenSize / numAttentionHeads;
+  const nLayers = safeNumber(config.num_hidden_layers, 32);
+  const nHeads = numAttentionHeads;
   const defaultQuantization = getQuantizationFromTorchDtype(config);
 
   return {
@@ -190,8 +346,14 @@ export function configToModelPreset(modelId: string, config: HuggingFaceConfig):
  */
 export async function loadModelFromHub(modelId: string): Promise<ModelPreset> {
   try {
-    const config = await loadModelConfig(modelId);
-    return configToModelPreset(modelId, config);
+    // Load config, safetensors index, and model info in parallel
+    const [config, safetensorsIndex, modelInfo] = await Promise.all([
+      loadModelConfig(modelId),
+      loadSafetensorsIndex(modelId),
+      loadModelInfo(modelId)
+    ]);
+    
+    return configToModelPreset(modelId, config, safetensorsIndex, modelInfo);
   } catch (error) {
     console.error('Error loading model from hub:', error);
     throw error;
