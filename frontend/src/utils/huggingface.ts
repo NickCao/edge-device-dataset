@@ -44,7 +44,7 @@ export async function searchModels(
   options: {
     limit?: number;
     sort?: 'trending' | 'downloads' | 'likes' | 'updated';
-    direction?: 'asc' | 'desc';
+    direction?: -1 | 1;
     filter?: string;
     full?: boolean;
   } = {}
@@ -63,7 +63,7 @@ export async function searchModels(
     }
     
     if (options.direction) {
-      searchParams.append('direction', options.direction);
+      searchParams.append('direction', options.direction.toString());
     }
     
     if (options.filter) {
@@ -199,9 +199,9 @@ export async function loadModelFromHub(modelId: string): Promise<ModelPreset> {
 }
 
 /**
- * Popular model suggestions for quick access
+ * Suggested model presets for quick access
  */
-export const POPULAR_MODELS = [
+export const SUGGESTED_MODELS = [
   'ibm-granite/granite-3.3-2b-instruct',
   'ibm-granite/granite-3.3-8b-instruct'
 ];

@@ -2,7 +2,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   TextField,
-  Button,
   CircularProgress,
   List,
   ListItem,
@@ -16,7 +15,7 @@ import {
   Divider,
 } from '@mui/material';
 import { Search as SearchIcon, CloudDownload as DownloadIcon } from '@mui/icons-material';
-import { searchModels, loadModelFromHub, POPULAR_MODELS } from '../utils/huggingface';
+import { searchModels, loadModelFromHub, SUGGESTED_MODELS } from '../utils/huggingface';
 import type { ModelPreset } from '../types/calculator';
 
 interface HuggingFaceModelSearchProps {
@@ -43,8 +42,8 @@ export const HuggingFaceModelSearch: React.FC<HuggingFaceModelSearchProps> = ({
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [error, setError] = useState<string>('');
 
-  // Memoized popular models for autocomplete
-  const popularModelsOptions = useMemo(() => POPULAR_MODELS.map(model => ({
+  // Memoized suggested models for autocomplete
+  const suggestedModelsOptions = useMemo(() => SUGGESTED_MODELS.map(model => ({
     label: model,
     value: model
   })), []);
@@ -62,7 +61,7 @@ export const HuggingFaceModelSearch: React.FC<HuggingFaceModelSearchProps> = ({
       const results = await searchModels(query, {
         limit: 10,
         sort: 'downloads',
-        direction: 'desc',
+        direction: -1,
         filter: 'text-generation'
       });
 
@@ -126,18 +125,18 @@ export const HuggingFaceModelSearch: React.FC<HuggingFaceModelSearchProps> = ({
         Load from Hugging Face Hub
       </Typography>
 
-      {/* Popular Models Quick Select */}
+      {/* Suggested Models Quick Select */}
       <Box>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'medium' }}>
-          Popular Models (Quick Load)
+          Suggested Models
         </Typography>
         <Autocomplete
-          options={popularModelsOptions}
+          options={suggestedModelsOptions}
           getOptionLabel={(option) => option.label}
           renderInput={(params) => (
             <TextField
               {...params}
-              placeholder="Select a popular model..."
+              placeholder="Select a suggested model..."
               size="small"
               InputProps={{
                 ...params.InputProps,
@@ -145,25 +144,11 @@ export const HuggingFaceModelSearch: React.FC<HuggingFaceModelSearchProps> = ({
               }}
             />
           )}
-          renderOption={(props, option) => (
-            <Box component="li" {...props}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                <Typography variant="body2">{option.label}</Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLoadModel(option.value);
-                  }}
-                  disabled={isLoading}
-                  sx={{ ml: 1 }}
-                >
-                  Load
-                </Button>
-              </Box>
-            </Box>
-          )}
+          onChange={(_, option) => {
+            if (option) {
+              handleLoadModel(option.value);
+            }
+          }}
           sx={{ mb: 2 }}
         />
       </Box>
@@ -205,30 +190,25 @@ export const HuggingFaceModelSearch: React.FC<HuggingFaceModelSearchProps> = ({
           <List dense>
             {searchResults.map((model, index) => (
               <React.Fragment key={model.id}>
-                <ListItem
-                  disablePadding
-                  secondaryAction={
-                    <Button
-                      size="small"
-                      variant="contained"
-                      onClick={() => handleLoadModel(model.id)}
-                      disabled={isLoading}
-                      sx={{ minWidth: 60 }}
-                    >
-                      {isLoading && selectedModel === model.id ? (
-                        <CircularProgress size={16} />
-                      ) : (
-                        'Load'
-                      )}
-                    </Button>
-                  }
-                >
-                  <ListItemButton sx={{ pr: 8 }}>
+                <ListItem disablePadding>
+                  <ListItemButton 
+                    onClick={() => handleLoadModel(model.id)}
+                    disabled={isLoading}
+                    sx={{ 
+                      opacity: isLoading && selectedModel === model.id ? 0.6 : 1,
+                      cursor: isLoading ? 'wait' : 'pointer'
+                    }}
+                  >
                     <ListItemText
                       primary={
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {model.id}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                            {model.id}
+                          </Typography>
+                          {isLoading && selectedModel === model.id && (
+                            <CircularProgress size={16} />
+                          )}
+                        </Box>
                       }
                       secondary={
                         <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -278,8 +258,7 @@ export const HuggingFaceModelSearch: React.FC<HuggingFaceModelSearchProps> = ({
 
       {/* Help Text */}
       <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-        Search for any text-generation model on Hugging Face Hub. 
-        The model's configuration will be automatically loaded and converted to the calculator format.
+        Select or click any model to automatically load its configuration from Hugging Face Hub.
       </Typography>
     </Box>
   );

@@ -21,7 +21,7 @@ import {
 import type { GPUSpecs, ModelSpecs, CalculationResults, SystemOverhead } from '../types/calculator';
 import { DEFAULT_INFERENCE_PARAMS, DEFAULT_SYSTEM_OVERHEAD } from '../types/calculator';
 import { calculatePerformance } from '../utils/calculations';
-import { useGPUs, useModels } from '../hooks/useDataLoader';
+import { useGPUs } from '../hooks/useDataLoader';
 import { GPUSelector } from './GPUSelector';
 import { ModelInputs } from './ModelInputs';
 import { SystemOverheadInputs } from './SystemOverheadInputs';
@@ -52,7 +52,6 @@ function TabPanel(props: TabPanelProps) {
 
 export const AIModelCalculator: React.FC = () => {
   const { gpus, loading: gpusLoading, error: gpusError } = useGPUs();
-  const { models, loading: modelsLoading, error: modelsError } = useModels();
   
   const [selectedGPU, setSelectedGPU] = useState<GPUSpecs | null>(null);
   const [modelSpecs, setModelSpecs] = useState<ModelSpecs | null>(null);
@@ -67,23 +66,22 @@ export const AIModelCalculator: React.FC = () => {
     }
   }, [gpus, selectedGPU]);
 
-  // Set default model when models are loaded
+  // Set default model specs if not already set
   useEffect(() => {
-    if (models.length > 0 && !modelSpecs) {
-      const firstModel = models[0];
+    if (!modelSpecs) {
       setModelSpecs({
-        parameters: firstModel.parameters,
-        sequenceLength: firstModel.sequenceLength,
+        parameters: 7.0, // Default 7B model
+        sequenceLength: 4096,
         batchSize: DEFAULT_INFERENCE_PARAMS.batchSize,
         promptTokens: DEFAULT_INFERENCE_PARAMS.promptTokens,
         outputTokens: DEFAULT_INFERENCE_PARAMS.outputTokens,
-        quantization: firstModel.defaultQuantization,
-        headDimension: firstModel.headDimension,
-        nLayers: firstModel.nLayers,
-        nHeads: firstModel.nHeads,
+        quantization: 'FP16',
+        headDimension: 128,
+        nLayers: 32,
+        nHeads: 32,
       });
     }
-  }, [models, modelSpecs]);
+  }, [modelSpecs]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -98,7 +96,7 @@ export const AIModelCalculator: React.FC = () => {
   }, [selectedGPU, modelSpecs, systemOverhead]);
 
   // Show loading state while data is being fetched
-  if (gpusLoading || modelsLoading) {
+  if (gpusLoading) {
     return (
       <Box sx={{ 
         minHeight: '100vh', 
@@ -113,7 +111,7 @@ export const AIModelCalculator: React.FC = () => {
   }
 
   // Show error state if data loading failed
-  if (gpusError || modelsError) {
+  if (gpusError) {
     return (
       <Box sx={{ 
         minHeight: '100vh', 
@@ -123,7 +121,7 @@ export const AIModelCalculator: React.FC = () => {
         justifyContent: 'center'
       }}>
         <Typography variant="h6" color="error">
-          Error loading data: {gpusError || modelsError}
+          Error loading data: {gpusError}
         </Typography>
       </Box>
     );
@@ -260,7 +258,6 @@ export const AIModelCalculator: React.FC = () => {
                         <ModelInputs
                           modelSpecs={modelSpecs}
                           onModelChange={setModelSpecs}
-                          availableModels={models}
                         />
                       )}
                     </CardContent>
@@ -322,21 +319,7 @@ export const AIModelCalculator: React.FC = () => {
           {modelSpecs && (
             <ComparisonChart 
               availableModels={[
-                { name: 'Current Model Configuration', specs: modelSpecs },
-                ...(models.length > 0 ? [{
-                  name: `${models[0].name} (Default)`, 
-                  specs: {
-                    parameters: models[0].parameters,
-                    sequenceLength: models[0].sequenceLength,
-                    batchSize: DEFAULT_INFERENCE_PARAMS.batchSize,
-                    promptTokens: DEFAULT_INFERENCE_PARAMS.promptTokens,
-                    outputTokens: DEFAULT_INFERENCE_PARAMS.outputTokens,
-                    quantization: models[0].defaultQuantization,
-                    headDimension: models[0].headDimension,
-                    nLayers: models[0].nLayers,
-                    nHeads: models[0].nHeads,
-                  }
-                }] : [])
+                { name: 'Current Model Configuration', specs: modelSpecs }
               ]}
               availableGPUs={gpus}
             />

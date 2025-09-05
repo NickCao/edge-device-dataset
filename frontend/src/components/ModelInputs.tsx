@@ -11,11 +11,9 @@ import {
   Tooltip,
   IconButton,
   Divider,
-  Tabs,
-  Tab,
   Alert,
 } from '@mui/material';
-import { Info as InfoIcon, Storage as StorageIcon, Cloud as CloudIcon } from '@mui/icons-material';
+import { Info as InfoIcon } from '@mui/icons-material';
 import type { ModelSpecs, QuantizationType, ModelPreset } from '../types/calculator';
 import { QUANTIZATION_OPTIONS } from '../types/calculator';
 import { HuggingFaceModelSearch } from './HuggingFaceModelSearch';
@@ -23,12 +21,10 @@ import { HuggingFaceModelSearch } from './HuggingFaceModelSearch';
 interface ModelInputsProps {
   modelSpecs: ModelSpecs;
   onModelChange: (specs: ModelSpecs) => void;
-  availableModels: ModelPreset[];
 }
 
 
-export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelChange, availableModels }) => {
-  const [tabValue, setTabValue] = useState(0);
+export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelChange }) => {
   const [currentModelPreset, setCurrentModelPreset] = useState<ModelPreset | null>(null);
   const [hubError, setHubError] = useState<string>('');
 
@@ -36,14 +32,7 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
     onModelChange({ ...modelSpecs, [field]: value });
   };
 
-  const handlePresetChange = (modelName: string) => {
-    const selectedModel = availableModels.find(m => m.name === modelName);
-    if (selectedModel && selectedModel.parameters > 0) {
-      applyModelPreset(selectedModel);
-    }
-  };
-
-  const applyModelPreset = (model: ModelPreset) => {
+  const handleHuggingFaceModelLoad = (model: ModelPreset) => {
     setCurrentModelPreset(model);
     onModelChange({ 
       ...modelSpecs, 
@@ -54,10 +43,6 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
       nHeads: model.nHeads,
       quantization: model.defaultQuantization
     });
-  };
-
-  const handleHuggingFaceModelLoad = (model: ModelPreset) => {
-    applyModelPreset(model);
     setHubError('');
   };
 
@@ -71,57 +56,12 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {/* Model Source Selection */}
-      <Paper variant="outlined">
-        <Tabs 
-          value={tabValue} 
-          onChange={(_, newValue) => setTabValue(newValue)}
-          variant="fullWidth"
-        >
-          <Tab 
-            icon={<StorageIcon />} 
-            label="Static Presets" 
-            iconPosition="start"
-          />
-          <Tab 
-            icon={<CloudIcon />} 
-            label="Hugging Face Hub" 
-            iconPosition="start"
-          />
-        </Tabs>
-
-        <Box sx={{ p: 2 }}>
-          {tabValue === 0 ? (
-            // Static Presets Tab
-            <FormControl fullWidth size="small">
-              <InputLabel id="model-select-label">Model Preset</InputLabel>
-              <Select
-                labelId="model-select-label"
-                value={availableModels.find(m => 
-                  m.parameters === modelSpecs.parameters &&
-                  m.sequenceLength === modelSpecs.sequenceLength &&
-                  m.headDimension === modelSpecs.headDimension &&
-                  m.nLayers === modelSpecs.nLayers &&
-                  m.nHeads === modelSpecs.nHeads
-                )?.name || 'Custom'}
-                label="Model Preset"
-                onChange={(e) => handlePresetChange(e.target.value as string)}
-              >
-                {availableModels.map((model) => (
-                  <MenuItem key={model.name} value={model.name}>
-                    {model.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          ) : (
-            // Hugging Face Hub Tab
-            <HuggingFaceModelSearch
-              onModelLoad={handleHuggingFaceModelLoad}
-              onError={handleHuggingFaceError}
-            />
-          )}
-        </Box>
+      {/* Hugging Face Hub Model Selection */}
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <HuggingFaceModelSearch
+          onModelLoad={handleHuggingFaceModelLoad}
+          onError={handleHuggingFaceError}
+        />
       </Paper>
 
       {/* Display current model info */}
