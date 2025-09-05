@@ -87,16 +87,11 @@ export const QUANTIZATION_OPTIONS: QuantizationInfo[] = [
 ];
 
 
-export const DEFAULT_MODEL: ModelSpecs = {
-  parameters: 7, // 7B parameters
-  sequenceLength: 4096, // N - Llama 2 7B context length for attention calculation
+// Default inference parameters (not model architecture)
+export const DEFAULT_INFERENCE_PARAMS = {
   batchSize: 1,
   promptTokens: 350,
   outputTokens: 150,
-  quantization: 'FP16',
-  headDimension: 128, // d_head - Llama 2 7B attention head dimension
-  nLayers: 32, // Llama 2 7B has 32 layers
-  nHeads: 32, // Llama 2 7B has 32 attention heads (d_model = 128 * 32 = 4096)
 };
 
 export const DEFAULT_SYSTEM_OVERHEAD: SystemOverhead = {

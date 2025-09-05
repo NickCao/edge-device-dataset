@@ -19,7 +19,7 @@ import {
   Tune as TuneIcon,
 } from '@mui/icons-material';
 import type { GPUSpecs, ModelSpecs, CalculationResults, SystemOverhead } from '../types/calculator';
-import { DEFAULT_MODEL, DEFAULT_SYSTEM_OVERHEAD } from '../types/calculator';
+import { DEFAULT_INFERENCE_PARAMS, DEFAULT_SYSTEM_OVERHEAD } from '../types/calculator';
 import { calculatePerformance } from '../utils/calculations';
 import { useGPUs, useModels } from '../hooks/useDataLoader';
 import { GPUSelector } from './GPUSelector';
@@ -55,7 +55,7 @@ export const AIModelCalculator: React.FC = () => {
   const { models, loading: modelsLoading, error: modelsError } = useModels();
   
   const [selectedGPU, setSelectedGPU] = useState<GPUSpecs | null>(null);
-  const [modelSpecs, setModelSpecs] = useState<ModelSpecs>(DEFAULT_MODEL);
+  const [modelSpecs, setModelSpecs] = useState<ModelSpecs | null>(null);
   const [systemOverhead, setSystemOverhead] = useState<SystemOverhead>(DEFAULT_SYSTEM_OVERHEAD);
   const [results, setResults] = useState<CalculationResults | null>(null);
   const [tabValue, setTabValue] = useState(0);
@@ -63,9 +63,27 @@ export const AIModelCalculator: React.FC = () => {
   // Set default GPU when GPUs are loaded
   useEffect(() => {
     if (gpus.length > 0 && !selectedGPU) {
-      setSelectedGPU(gpus.find(gpu => gpu.name === "NVIDIA A10") || gpus[1] || gpus[0]);
+      setSelectedGPU(gpus[0]); // Use first GPU from data as default
     }
   }, [gpus, selectedGPU]);
+
+  // Set default model when models are loaded
+  useEffect(() => {
+    if (models.length > 0 && !modelSpecs) {
+      const firstModel = models[0];
+      setModelSpecs({
+        parameters: firstModel.parameters,
+        sequenceLength: firstModel.sequenceLength,
+        batchSize: DEFAULT_INFERENCE_PARAMS.batchSize,
+        promptTokens: DEFAULT_INFERENCE_PARAMS.promptTokens,
+        outputTokens: DEFAULT_INFERENCE_PARAMS.outputTokens,
+        quantization: firstModel.defaultQuantization,
+        headDimension: firstModel.headDimension,
+        nLayers: firstModel.nLayers,
+        nHeads: firstModel.nHeads,
+      });
+    }
+  }, [models, modelSpecs]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -238,11 +256,13 @@ export const AIModelCalculator: React.FC = () => {
                           Model Configuration
                         </Typography>
                       </Box>
-                      <ModelInputs
-                        modelSpecs={modelSpecs}
-                        onModelChange={setModelSpecs}
-                        availableModels={models}
-                      />
+                      {modelSpecs && (
+                        <ModelInputs
+                          modelSpecs={modelSpecs}
+                          onModelChange={setModelSpecs}
+                          availableModels={models}
+                        />
+                      )}
                     </CardContent>
                   </Card>
                 </Box>
@@ -299,13 +319,28 @@ export const AIModelCalculator: React.FC = () => {
               Interactive Charts & Rankings
             </Typography>
           </Box>
-          <ComparisonChart 
-            availableModels={[
-              { name: 'Current Model Configuration', specs: modelSpecs },
-              { name: 'Llama 2 7B (Default)', specs: DEFAULT_MODEL },
-            ]}
-            availableGPUs={gpus}
-          />
+          {modelSpecs && (
+            <ComparisonChart 
+              availableModels={[
+                { name: 'Current Model Configuration', specs: modelSpecs },
+                ...(models.length > 0 ? [{
+                  name: `${models[0].name} (Default)`, 
+                  specs: {
+                    parameters: models[0].parameters,
+                    sequenceLength: models[0].sequenceLength,
+                    batchSize: DEFAULT_INFERENCE_PARAMS.batchSize,
+                    promptTokens: DEFAULT_INFERENCE_PARAMS.promptTokens,
+                    outputTokens: DEFAULT_INFERENCE_PARAMS.outputTokens,
+                    quantization: models[0].defaultQuantization,
+                    headDimension: models[0].headDimension,
+                    nLayers: models[0].nLayers,
+                    nHeads: models[0].nHeads,
+                  }
+                }] : [])
+              ]}
+              availableGPUs={gpus}
+            />
+          )}
         </CardContent>
       </Card>
         </TabPanel>

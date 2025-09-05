@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -48,9 +48,16 @@ type ChartType = 'performance' | 'bottleneck' | 'throughput';
 export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModels, availableGPUs }) => {
   const [chartType, setChartType] = useState<ChartType>('performance');
   const [selectedModelIndex, setSelectedModelIndex] = useState<number>(0);
-  const [selectedGPUs, setSelectedGPUs] = useState<string[]>(
-    availableGPUs.slice(0, 8).map(gpu => gpu.name) // Default to first 8 GPUs
-  );
+  const [selectedGPUs, setSelectedGPUs] = useState<string[]>([]);
+
+  // Set default selected GPUs when availableGPUs loads
+  useEffect(() => {
+    if (availableGPUs.length > 0 && selectedGPUs.length === 0) {
+      // Default to first 8 GPUs (or all if less than 8)
+      const defaultCount = Math.min(8, availableGPUs.length);
+      setSelectedGPUs(availableGPUs.slice(0, defaultCount).map(gpu => gpu.name));
+    }
+  }, [availableGPUs, selectedGPUs.length]);
 
   // Calculate comparisons based on selected model and filtered GPUs
   const currentModel = availableModels[selectedModelIndex]?.specs;
