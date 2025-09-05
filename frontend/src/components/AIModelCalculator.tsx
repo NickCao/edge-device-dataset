@@ -19,8 +19,9 @@ import {
   Tune as TuneIcon,
 } from '@mui/icons-material';
 import type { GPUSpecs, ModelSpecs, CalculationResults, SystemOverhead } from '../types/calculator';
-import { COMMON_GPUS, DEFAULT_MODEL, DEFAULT_SYSTEM_OVERHEAD } from '../types/calculator';
+import { DEFAULT_MODEL, DEFAULT_SYSTEM_OVERHEAD } from '../types/calculator';
 import { calculatePerformance } from '../utils/calculations';
+import { useGPUs, useModels } from '../hooks/useDataLoader';
 import { GPUSelector } from './GPUSelector';
 import { ModelInputs } from './ModelInputs';
 import { SystemOverheadInputs } from './SystemOverheadInputs';
@@ -50,11 +51,21 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export const AIModelCalculator: React.FC = () => {
-  const [selectedGPU, setSelectedGPU] = useState<GPUSpecs>(COMMON_GPUS[1]); // Default to A10
+  const { gpus, loading: gpusLoading, error: gpusError } = useGPUs();
+  const { models, loading: modelsLoading, error: modelsError } = useModels();
+  
+  const [selectedGPU, setSelectedGPU] = useState<GPUSpecs | null>(null);
   const [modelSpecs, setModelSpecs] = useState<ModelSpecs>(DEFAULT_MODEL);
   const [systemOverhead, setSystemOverhead] = useState<SystemOverhead>(DEFAULT_SYSTEM_OVERHEAD);
   const [results, setResults] = useState<CalculationResults | null>(null);
   const [tabValue, setTabValue] = useState(0);
+
+  // Set default GPU when GPUs are loaded
+  useEffect(() => {
+    if (gpus.length > 0 && !selectedGPU) {
+      setSelectedGPU(gpus.find(gpu => gpu.name === "NVIDIA A10") || gpus[1] || gpus[0]);
+    }
+  }, [gpus, selectedGPU]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -67,6 +78,38 @@ export const AIModelCalculator: React.FC = () => {
       setResults(calculationResults);
     }
   }, [selectedGPU, modelSpecs, systemOverhead]);
+
+  // Show loading state while data is being fetched
+  if (gpusLoading || modelsLoading) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh', 
+        backgroundColor: 'background.default',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Typography variant="h6">Loading GPU and model data...</Typography>
+      </Box>
+    );
+  }
+
+  // Show error state if data loading failed
+  if (gpusError || modelsError) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh', 
+        backgroundColor: 'background.default',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Typography variant="h6" color="error">
+          Error loading data: {gpusError || modelsError}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -164,6 +207,7 @@ export const AIModelCalculator: React.FC = () => {
                       <GPUSelector
                         selectedGPU={selectedGPU}
                         onGPUChange={setSelectedGPU}
+                        availableGPUs={gpus}
                       />
                     </CardContent>
                   </Card>
@@ -197,6 +241,7 @@ export const AIModelCalculator: React.FC = () => {
                       <ModelInputs
                         modelSpecs={modelSpecs}
                         onModelChange={setModelSpecs}
+                        availableModels={models}
                       />
                     </CardContent>
                   </Card>
@@ -259,6 +304,7 @@ export const AIModelCalculator: React.FC = () => {
               { name: 'Current Model Configuration', specs: modelSpecs },
               { name: 'Llama 2 7B (Default)', specs: DEFAULT_MODEL },
             ]}
+            availableGPUs={gpus}
           />
         </CardContent>
       </Card>

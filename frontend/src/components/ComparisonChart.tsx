@@ -34,26 +34,27 @@ import {
   AccessTime as ClockIcon,
   Info as InfoIcon,
 } from '@mui/icons-material';
-import type { ComparisonResult, ModelSpecs } from '../types/calculator';
-import { COMMON_GPUS, DEFAULT_SYSTEM_OVERHEAD } from '../types/calculator';
+import type { ComparisonResult, ModelSpecs, GPUSpecs } from '../types/calculator';
+import { DEFAULT_SYSTEM_OVERHEAD } from '../types/calculator';
 import { calculatePerformance } from '../utils/calculations';
 
 interface ComparisonChartProps {
   availableModels: { name: string; specs: ModelSpecs }[];
+  availableGPUs: GPUSpecs[];
 }
 
 type ChartType = 'performance' | 'bottleneck' | 'throughput';
 
-export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModels }) => {
+export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModels, availableGPUs }) => {
   const [chartType, setChartType] = useState<ChartType>('performance');
   const [selectedModelIndex, setSelectedModelIndex] = useState<number>(0);
   const [selectedGPUs, setSelectedGPUs] = useState<string[]>(
-    COMMON_GPUS.slice(0, 8).map(gpu => gpu.name) // Default to first 8 GPUs
+    availableGPUs.slice(0, 8).map(gpu => gpu.name) // Default to first 8 GPUs
   );
 
   // Calculate comparisons based on selected model and filtered GPUs
   const currentModel = availableModels[selectedModelIndex]?.specs;
-  const filteredGPUs = COMMON_GPUS.filter(gpu => selectedGPUs.includes(gpu.name));
+  const filteredGPUs = availableGPUs.filter(gpu => selectedGPUs.includes(gpu.name));
   const comparisons: ComparisonResult[] = currentModel ? filteredGPUs.map(gpu => ({
     gpu,
     results: calculatePerformance(gpu, currentModel, DEFAULT_SYSTEM_OVERHEAD),
@@ -68,7 +69,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModel
   };
 
   const handleSelectAll = () => {
-    setSelectedGPUs(COMMON_GPUS.map(gpu => gpu.name));
+    setSelectedGPUs(availableGPUs.map(gpu => gpu.name));
   };
 
   const handleDeselectAll = () => {
@@ -260,7 +261,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModel
             <Box sx={{ flex: 1 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 'medium' }}>
-                  Selected GPUs ({selectedGPUs.length} of {COMMON_GPUS.length})
+                  Selected GPUs ({selectedGPUs.length} of {availableGPUs.length})
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxHeight: 60, overflow: 'auto' }}>
                   {selectedGPUs.slice(0, 6).map(gpuName => (
@@ -304,7 +305,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ availableModel
                 gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)' },
                 gap: 1
               }}>
-                {COMMON_GPUS.map((gpu) => (
+                {availableGPUs.map((gpu) => (
                   <FormControlLabel
                     key={gpu.name}
                     control={

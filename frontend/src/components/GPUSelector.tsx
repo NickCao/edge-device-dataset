@@ -10,16 +10,21 @@ import {
   Paper,
 } from '@mui/material';
 import type { GPUSpecs } from '../types/calculator';
-import { COMMON_GPUS } from '../types/calculator';
 
 interface GPUSelectorProps {
-  selectedGPU: GPUSpecs;
+  selectedGPU: GPUSpecs | null;
   onGPUChange: (gpu: GPUSpecs) => void;
+  availableGPUs: GPUSpecs[];
 }
 
-export const GPUSelector: React.FC<GPUSelectorProps> = ({ selectedGPU, onGPUChange }) => {
+export const GPUSelector: React.FC<GPUSelectorProps> = ({ selectedGPU, onGPUChange, availableGPUs }) => {
   const [isCustom, setIsCustom] = useState(false);
-  const [customGPU, setCustomGPU] = useState<GPUSpecs>(selectedGPU);
+  const [customGPU, setCustomGPU] = useState<GPUSpecs>(selectedGPU || {
+    name: 'Custom GPU',
+    computeBandwidth: 100,
+    memoryBandwidth: 500,
+    memorySize: 16,
+  });
 
   const handlePresetChange = (gpuName: string) => {
     if (gpuName === 'custom') {
@@ -27,7 +32,7 @@ export const GPUSelector: React.FC<GPUSelectorProps> = ({ selectedGPU, onGPUChan
       onGPUChange(customGPU);
     } else {
       setIsCustom(false);
-      const gpu = COMMON_GPUS.find(g => g.name === gpuName);
+      const gpu = availableGPUs.find(g => g.name === gpuName);
       if (gpu) {
         onGPUChange(gpu);
       }
@@ -47,11 +52,11 @@ export const GPUSelector: React.FC<GPUSelectorProps> = ({ selectedGPU, onGPUChan
         <InputLabel id="gpu-select-label">Select GPU</InputLabel>
         <Select
           labelId="gpu-select-label"
-          value={isCustom ? 'custom' : selectedGPU.name}
+          value={isCustom ? 'custom' : (selectedGPU?.name || '')}
           label="Select GPU"
           onChange={(e) => handlePresetChange(e.target.value as string)}
         >
-          {COMMON_GPUS.map((gpu) => (
+          {availableGPUs.map((gpu) => (
             <MenuItem key={gpu.name} value={gpu.name}>
               {gpu.name}
             </MenuItem>
@@ -110,31 +115,33 @@ export const GPUSelector: React.FC<GPUSelectorProps> = ({ selectedGPU, onGPUChan
       )}
 
       {/* GPU Specs Display */}
-      <Paper sx={{ p: 2, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-          Current GPU Specs
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography variant="caption">Compute:</Typography>
-            <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
-              {selectedGPU.computeBandwidth} TFLOPS
-            </Typography>
+      {selectedGPU && (
+        <Paper sx={{ p: 2, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+            Current GPU Specs
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="caption">Compute:</Typography>
+              <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                {selectedGPU.computeBandwidth} TFLOPS
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="caption">Memory BW:</Typography>
+              <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                {selectedGPU.memoryBandwidth} GB/s
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="caption">Memory:</Typography>
+              <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                {selectedGPU.memorySize} GB
+              </Typography>
+            </Box>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography variant="caption">Memory BW:</Typography>
-            <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
-              {selectedGPU.memoryBandwidth} GB/s
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography variant="caption">Memory:</Typography>
-            <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
-              {selectedGPU.memorySize} GB
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
+        </Paper>
+      )}
     </Box>
   );
 };

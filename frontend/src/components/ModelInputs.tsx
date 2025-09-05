@@ -15,70 +15,22 @@ import {
 import { Info as InfoIcon } from '@mui/icons-material';
 import type { ModelSpecs, QuantizationType } from '../types/calculator';
 import { QUANTIZATION_OPTIONS } from '../types/calculator';
+import type { ModelPreset } from '../data/models';
 
 interface ModelInputsProps {
   modelSpecs: ModelSpecs;
   onModelChange: (specs: ModelSpecs) => void;
+  availableModels: ModelPreset[];
 }
 
-const COMMON_MODELS = [
-  { 
-    name: 'Llama 2 7B', 
-    parameters: 7, 
-    sequenceLength: 4096, // N - context length
-    headDimension: 128,   // d_head - attention head dimension
-    nLayers: 32,          // number of transformer layers
-    nHeads: 32           // number of attention heads (d_model = d_head * n_heads = 128 * 32 = 4096)
-  },
-  {
-    name: 'Llama 2 13B', 
-    parameters: 13, 
-    sequenceLength: 4096, 
-    headDimension: 128,
-    nLayers: 40,
-    nHeads: 40
-  },
-  {
-    name: 'Llama 2 70B', 
-    parameters: 70, 
-    sequenceLength: 4096, 
-    headDimension: 128,
-    nLayers: 64,
-    nHeads: 80
-  },
-  {
-    name: 'Granite 3.3 2B',
-    parameters: 2.53,
-    sequenceLength: 131072,
-    headDimension: 64,
-    nLayers: 40,
-    nHeads: 32
-  },
-  {
-    name: 'Granite 3.3 8B',
-    parameters: 8.17,
-    sequenceLength: 131072,
-    headDimension: 128,
-    nLayers: 40,
-    nHeads: 32
-  },
-  { 
-    name: 'Custom', 
-    parameters: 0, 
-    sequenceLength: 2048, 
-    headDimension: 128,
-    nLayers: 32,
-    nHeads: 32
-  },
-];
 
-export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelChange }) => {
+export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelChange, availableModels }) => {
   const handleInputChange = (field: keyof ModelSpecs, value: number | QuantizationType) => {
     onModelChange({ ...modelSpecs, [field]: value });
   };
 
   const handlePresetChange = (modelName: string) => {
-    const selectedModel = COMMON_MODELS.find(m => m.name === modelName);
+    const selectedModel = availableModels.find(m => m.name === modelName);
     if (selectedModel && selectedModel.parameters > 0) {
       onModelChange({ 
         ...modelSpecs, 
@@ -86,7 +38,8 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
         sequenceLength: selectedModel.sequenceLength,
         headDimension: selectedModel.headDimension,
         nLayers: selectedModel.nLayers,
-        nHeads: selectedModel.nHeads
+        nHeads: selectedModel.nHeads,
+        quantization: selectedModel.defaultQuantization
       });
     }
   };
@@ -102,7 +55,7 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
         <InputLabel id="model-select-label">Model Preset</InputLabel>
         <Select
           labelId="model-select-label"
-          value={COMMON_MODELS.find(m => 
+          value={availableModels.find(m => 
             m.parameters === modelSpecs.parameters &&
             m.sequenceLength === modelSpecs.sequenceLength &&
             m.headDimension === modelSpecs.headDimension &&
@@ -112,7 +65,7 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
           label="Model Preset"
           onChange={(e) => handlePresetChange(e.target.value as string)}
         >
-          {COMMON_MODELS.map((model) => (
+          {availableModels.map((model) => (
             <MenuItem key={model.name} value={model.name}>
               {model.name}
             </MenuItem>
