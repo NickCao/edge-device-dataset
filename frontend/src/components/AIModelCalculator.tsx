@@ -268,7 +268,7 @@ export const AIModelCalculator: React.FC = () => {
 
             {/* Results Section */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              {results && (
+              {results && selectedGPU && (
                 <Card elevation={3}>
                   <CardContent sx={{ p: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
