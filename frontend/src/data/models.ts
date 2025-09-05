@@ -12,8 +12,8 @@ export interface ModelPreset {
 
 export const MODELS: ModelPreset[] = [
   {
-    name: "Llama 2 7B",
-    parameters: 7,
+    name: "meta-llama/Llama-2-7b-hf",
+    parameters: 6.74,
     sequenceLength: 4096,
     headDimension: 128,
     nLayers: 32,
@@ -21,7 +21,7 @@ export const MODELS: ModelPreset[] = [
     defaultQuantization: "FP16"
   },
   {
-    name: "Llama 2 13B",
+    name: "meta-llama/Llama-2-13b-hf",
     parameters: 13,
     sequenceLength: 4096,
     headDimension: 128,
@@ -30,8 +30,8 @@ export const MODELS: ModelPreset[] = [
     defaultQuantization: "FP16"
   },
   {
-    name: "Llama 2 70B",
-    parameters: 70,
+    name: "meta-llama/Llama-2-70b-hf",
+    parameters: 69,
     sequenceLength: 4096,
     headDimension: 128,
     nLayers: 64,
@@ -39,8 +39,8 @@ export const MODELS: ModelPreset[] = [
     defaultQuantization: "INT8"
   },
   {
-    name: "Granite 3.3 2B",
-    parameters: 2,
+    name: "ibm-granite/granite-3.3-2b-instruct",
+    parameters: 2.53,
     sequenceLength: 131072,
     headDimension: 64,
     nLayers: 40,
@@ -48,8 +48,8 @@ export const MODELS: ModelPreset[] = [
     defaultQuantization: "FP16"
   },
   {
-    name: "Granite 3.3 8B",
-    parameters: 8,
+    name: "ibm-granite/granite-3.3-8b-instruct",
+    parameters: 8.17,
     sequenceLength: 131072,
     headDimension: 128,
     nLayers: 40,
