@@ -8,6 +8,7 @@
         "@emotion/styled": "^11.14.1",
         "@fontsource/roboto": "^5.2.6",
         "@headlessui/react": "^2.2.7",
+        "@huggingface/hub": "^2.6.2",
         "@mui/icons-material": "^7.3.2",
         "@mui/material": "^7.3.2",
         "@tailwindcss/postcss": "^4.1.12",
@@ -188,6 +189,10 @@
     "@fontsource/roboto": ["@fontsource/roboto@5.2.6", "", {}, "sha512-hzarG7yAhMoP418smNgfY4fO7UmuUEm5JUtbxCoCcFHT0hOJB+d/qAEyoNjz7YkPU5OjM2LM8rJnW8hfm0JLaA=="],
 
     "@headlessui/react": ["@headlessui/react@2.2.7", "", { "dependencies": { "@floating-ui/react": "^0.26.16", "@react-aria/focus": "^3.20.2", "@react-aria/interactions": "^3.25.0", "@tanstack/react-virtual": "^3.13.9", "use-sync-external-store": "^1.5.0" }, "peerDependencies": { "react": "^18 || ^19 || ^19.0.0-rc", "react-dom": "^18 || ^19 || ^19.0.0-rc" } }, "sha512-WKdTymY8Y49H8/gUc/lIyYK1M+/6dq0Iywh4zTZVAaiTDprRfioxSgD0wnXTQTBpjpGJuTL1NO/mqEvc//5SSg=="],
+
+    "@huggingface/hub": ["@huggingface/hub@2.6.2", "", { "dependencies": { "@huggingface/tasks": "^0.19.43" }, "bin": { "hfjs": "dist/cli.js" } }, "sha512-3XioOxMGwyIJEh2fo7bpXD+PExVQ8RcWjcmO9eLm+BCHVsRAvM1zwbEvHPQvRVM3Jqhb+/5iagvA8HbqJN/nzA=="],
+
+    "@huggingface/tasks": ["@huggingface/tasks@0.19.43", "", {}, "sha512-ANO23K3ugclBl6VLwdt+7MxBkRkKEE17USUSqprHb29UB5ISigH+0AJcEuDA064uzn0hqYrG/nOcv1yARRt8bw=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 

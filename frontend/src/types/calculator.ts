@@ -5,6 +5,18 @@ export interface GPUSpecs {
   memorySize: number; // GB
 }
 
+export interface ModelPreset {
+  name: string;
+  parameters: number;
+  sequenceLength: number;
+  headDimension: number;
+  nLayers: number;
+  nHeads: number;
+  defaultQuantization: QuantizationType;
+  isFromHub?: boolean; // Flag to indicate if loaded from HF Hub
+  hubUrl?: string; // URL to the model on HF Hub
+}
+
 export interface ModelSpecs {
   parameters: number; // in billions
   sequenceLength: number; // N - context length for attention calculation

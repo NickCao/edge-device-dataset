@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -11,11 +11,14 @@ import {
   Tooltip,
   IconButton,
   Divider,
+  Tabs,
+  Tab,
+  Alert,
 } from '@mui/material';
-import { Info as InfoIcon } from '@mui/icons-material';
-import type { ModelSpecs, QuantizationType } from '../types/calculator';
+import { Info as InfoIcon, Storage as StorageIcon, Cloud as CloudIcon } from '@mui/icons-material';
+import type { ModelSpecs, QuantizationType, ModelPreset } from '../types/calculator';
 import { QUANTIZATION_OPTIONS } from '../types/calculator';
-import type { ModelPreset } from '../data/models';
+import { HuggingFaceModelSearch } from './HuggingFaceModelSearch';
 
 interface ModelInputsProps {
   modelSpecs: ModelSpecs;
@@ -25,6 +28,10 @@ interface ModelInputsProps {
 
 
 export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelChange, availableModels }) => {
+  const [tabValue, setTabValue] = useState(0);
+  const [currentModelPreset, setCurrentModelPreset] = useState<ModelPreset | null>(null);
+  const [hubError, setHubError] = useState<string>('');
+
   const handleInputChange = (field: keyof ModelSpecs, value: number | QuantizationType) => {
     onModelChange({ ...modelSpecs, [field]: value });
   };
@@ -32,16 +39,30 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
   const handlePresetChange = (modelName: string) => {
     const selectedModel = availableModels.find(m => m.name === modelName);
     if (selectedModel && selectedModel.parameters > 0) {
-      onModelChange({ 
-        ...modelSpecs, 
-        parameters: selectedModel.parameters,
-        sequenceLength: selectedModel.sequenceLength,
-        headDimension: selectedModel.headDimension,
-        nLayers: selectedModel.nLayers,
-        nHeads: selectedModel.nHeads,
-        quantization: selectedModel.defaultQuantization
-      });
+      applyModelPreset(selectedModel);
     }
+  };
+
+  const applyModelPreset = (model: ModelPreset) => {
+    setCurrentModelPreset(model);
+    onModelChange({ 
+      ...modelSpecs, 
+      parameters: model.parameters,
+      sequenceLength: model.sequenceLength,
+      headDimension: model.headDimension,
+      nLayers: model.nLayers,
+      nHeads: model.nHeads,
+      quantization: model.defaultQuantization
+    });
+  };
+
+  const handleHuggingFaceModelLoad = (model: ModelPreset) => {
+    applyModelPreset(model);
+    setHubError('');
+  };
+
+  const handleHuggingFaceError = (error: string) => {
+    setHubError(error);
   };
 
   // Calculate model size based on quantization
@@ -50,28 +71,96 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {/* Model Preset Selector */}
-      <FormControl fullWidth size="small">
-        <InputLabel id="model-select-label">Model Preset</InputLabel>
-        <Select
-          labelId="model-select-label"
-          value={availableModels.find(m => 
-            m.parameters === modelSpecs.parameters &&
-            m.sequenceLength === modelSpecs.sequenceLength &&
-            m.headDimension === modelSpecs.headDimension &&
-            m.nLayers === modelSpecs.nLayers &&
-            m.nHeads === modelSpecs.nHeads
-          )?.name || 'Custom'}
-          label="Model Preset"
-          onChange={(e) => handlePresetChange(e.target.value as string)}
+      {/* Model Source Selection */}
+      <Paper variant="outlined">
+        <Tabs 
+          value={tabValue} 
+          onChange={(_, newValue) => setTabValue(newValue)}
+          variant="fullWidth"
         >
-          {availableModels.map((model) => (
-            <MenuItem key={model.name} value={model.name}>
-              {model.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          <Tab 
+            icon={<StorageIcon />} 
+            label="Static Presets" 
+            iconPosition="start"
+          />
+          <Tab 
+            icon={<CloudIcon />} 
+            label="Hugging Face Hub" 
+            iconPosition="start"
+          />
+        </Tabs>
+
+        <Box sx={{ p: 2 }}>
+          {tabValue === 0 ? (
+            // Static Presets Tab
+            <FormControl fullWidth size="small">
+              <InputLabel id="model-select-label">Model Preset</InputLabel>
+              <Select
+                labelId="model-select-label"
+                value={availableModels.find(m => 
+                  m.parameters === modelSpecs.parameters &&
+                  m.sequenceLength === modelSpecs.sequenceLength &&
+                  m.headDimension === modelSpecs.headDimension &&
+                  m.nLayers === modelSpecs.nLayers &&
+                  m.nHeads === modelSpecs.nHeads
+                )?.name || 'Custom'}
+                label="Model Preset"
+                onChange={(e) => handlePresetChange(e.target.value as string)}
+              >
+                {availableModels.map((model) => (
+                  <MenuItem key={model.name} value={model.name}>
+                    {model.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            // Hugging Face Hub Tab
+            <HuggingFaceModelSearch
+              onModelLoad={handleHuggingFaceModelLoad}
+              onError={handleHuggingFaceError}
+            />
+          )}
+        </Box>
+      </Paper>
+
+      {/* Display current model info */}
+      {currentModelPreset && (
+        <Alert 
+          severity="info" 
+          sx={{ 
+            '& .MuiAlert-message': { 
+              display: 'flex', 
+              flexDirection: 'column',
+              gap: 0.5
+            }
+          }}
+        >
+          <Typography variant="subtitle2">
+            Current Model: {currentModelPreset.name}
+          </Typography>
+          {currentModelPreset.isFromHub && (
+            <Typography variant="caption">
+              Loaded from Hugging Face Hub • {' '}
+              <a 
+                href={currentModelPreset.hubUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: 'inherit' }}
+              >
+                View on Hub →
+              </a>
+            </Typography>
+          )}
+        </Alert>
+      )}
+
+      {/* Hub Error Display */}
+      {hubError && (
+        <Alert severity="error" onClose={() => setHubError('')}>
+          {hubError}
+        </Alert>
+      )}
 
       {/* Parameters Input */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
