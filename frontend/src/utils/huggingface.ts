@@ -145,13 +145,20 @@ function estimateParameters(config: HuggingFaceConfig): number {
 }
 
 /**
- * Determine appropriate quantization based on model size
+ * Map model's torch_dtype to quantization type
  */
-function getDefaultQuantization(parametersBillions: number): QuantizationType {
-  if (parametersBillions < 3) return 'FP16';
-  if (parametersBillions < 15) return 'FP16';
-  if (parametersBillions < 50) return 'INT8';
-  return 'INT8'; // For very large models
+function getQuantizationFromTorchDtype(config: HuggingFaceConfig): QuantizationType {
+  // Use the model's default tensor type (torch_dtype)
+  if (config.torch_dtype) {
+    const dtype = config.torch_dtype.toLowerCase();
+    if (dtype.includes('float32') || dtype.includes('fp32')) return 'FP32';
+    if (dtype.includes('float16') || dtype.includes('fp16') || dtype.includes('bfloat16') || dtype.includes('bf16')) return 'FP16';
+    if (dtype.includes('int8')) return 'INT8';
+    if (dtype.includes('int4')) return 'INT4';
+  }
+  
+  // Default to FP16 if no torch_dtype specified (most common for modern models)
+  return 'FP16';
 }
 
 /**
@@ -165,7 +172,7 @@ export function configToModelPreset(modelId: string, config: HuggingFaceConfig):
     : 128;
   const nLayers = config.num_hidden_layers || 32;
   const nHeads = config.num_attention_heads || 32;
-  const defaultQuantization = getDefaultQuantization(parameters);
+  const defaultQuantization = getQuantizationFromTorchDtype(config);
 
   return {
     name: modelId,
@@ -195,23 +202,6 @@ export async function loadModelFromHub(modelId: string): Promise<ModelPreset> {
  * Popular model suggestions for quick access
  */
 export const POPULAR_MODELS = [
-  'meta-llama/Llama-3.2-1B',
-  'meta-llama/Llama-3.2-3B', 
-  'meta-llama/Llama-3.2-11B-Vision',
-  'meta-llama/Llama-3.1-8B',
-  'meta-llama/Llama-3.1-70B',
-  'microsoft/Phi-3.5-mini-instruct',
-  'microsoft/Phi-3.5-MoE-instruct',
-  'mistralai/Mistral-7B-v0.1',
-  'mistralai/Mistral-7B-Instruct-v0.3',
-  'google/gemma-2-2b',
-  'google/gemma-2-9b',
-  'google/gemma-2-27b',
-  'Qwen/Qwen2.5-0.5B',
-  'Qwen/Qwen2.5-1.5B', 
-  'Qwen/Qwen2.5-3B',
-  'Qwen/Qwen2.5-7B',
-  'Qwen/Qwen2.5-14B',
-  'Qwen/Qwen2.5-32B',
-  'Qwen/Qwen2.5-72B'
+  'ibm-granite/granite-3.3-2b-instruct',
+  'ibm-granite/granite-3.3-8b-instruct'
 ];
