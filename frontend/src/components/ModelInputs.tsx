@@ -19,7 +19,7 @@ import { QUANTIZATION_OPTIONS } from '../types/calculator';
 import { HuggingFaceModelSearch } from './HuggingFaceModelSearch';
 
 interface ModelInputsProps {
-  modelSpecs: ModelSpecs;
+  modelSpecs: ModelSpecs | null;
   onModelChange: (specs: ModelSpecs) => void;
 }
 
@@ -29,19 +29,27 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
   const [hubError, setHubError] = useState<string>('');
 
   const handleInputChange = (field: keyof ModelSpecs, value: number | QuantizationType) => {
-    onModelChange({ ...modelSpecs, [field]: value });
+    if (modelSpecs) {
+      onModelChange({ ...modelSpecs, [field]: value });
+    }
   };
 
   const handleHuggingFaceModelLoad = (model: ModelPreset) => {
     setCurrentModelPreset(model);
     onModelChange({ 
-      ...modelSpecs, 
       parameters: model.parameters,
-      sequenceLength: model.sequenceLength,
+      sequenceLength: model.sequenceLength, // Keep for arithmetic intensity (max context)
       headDimension: model.headDimension,
       nLayers: model.nLayers,
       nHeads: model.nHeads,
-      quantization: model.defaultQuantization
+      nKvHeads: model.nKvHeads, // Now using real HF value
+      hiddenSize: model.hiddenSize, // Now using real HF value
+      intermediateSize: model.intermediateSize, // Now using real HF value
+      quantization: model.defaultQuantization,
+      // Set reasonable defaults for inference params
+      batchSize: 1,
+      promptTokens: 350,
+      outputTokens: 150,
     });
     setHubError('');
   };
@@ -50,9 +58,9 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
     setHubError(error);
   };
 
-  // Calculate model size based on quantization
-  const quantInfo = QUANTIZATION_OPTIONS.find(q => q.name === modelSpecs.quantization) || QUANTIZATION_OPTIONS[1];
-  const modelSizeGB = modelSpecs.parameters * quantInfo.bytesPerParameter;
+  // Calculate model size based on quantization (only if modelSpecs exists)
+  const quantInfo = modelSpecs ? QUANTIZATION_OPTIONS.find(q => q.name === modelSpecs.quantization) || QUANTIZATION_OPTIONS[1] : QUANTIZATION_OPTIONS[1];
+  const modelSizeGB = modelSpecs ? modelSpecs.parameters * quantInfo.bytesPerParameter : 0;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -102,7 +110,19 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
         </Alert>
       )}
 
-      {/* Parameters Input */}
+      {/* Show message when no model is loaded */}
+      {!modelSpecs && !currentModelPreset && (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          <Typography variant="body2">
+            👆 <strong>Load a model from HuggingFace Hub above</strong> to see architecture parameters and enable calculations.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Model Configuration Inputs - only show if model is loaded */}
+      {modelSpecs && (
+        <>
+          {/* Parameters Input */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <TextField
           label="Parameters (Billions)"
@@ -145,19 +165,22 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
         </Tooltip>
       </Box>
 
-                {/* Context Length */}
+                {/* Sequence Length - Calculated automatically */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <TextField
-              label="Context Length (N)"
+              label="Sequence Length (Calculated)"
               type="number"
-              value={modelSpecs.sequenceLength}
-              onChange={(e) => handleInputChange('sequenceLength', parseInt(e.target.value) || 0)}
+              value={modelSpecs.promptTokens + modelSpecs.outputTokens}
+              disabled
               size="small"
               fullWidth
-              placeholder="4096"
-              inputProps={{ min: 1, step: 1 }}
+              sx={{ 
+                '& .MuiInputBase-input.Mui-disabled': {
+                  WebkitTextFillColor: 'rgba(0, 0, 0, 0.6)',
+                }
+              }}
             />
-            <Tooltip title="N - context window size used in attention equation (4096 for Llama 2 7B)" placement="top">
+            <Tooltip title="Automatically calculated as Prompt Tokens + Output Tokens. This is the sequence length used in all calculations." placement="top">
               <IconButton size="small">
                 <InfoIcon fontSize="small" />
               </IconButton>
@@ -259,7 +282,7 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
           placeholder="350"
           inputProps={{ min: 1, step: 1 }}
         />
-        <Tooltip title="Input tokens (prefill)" placement="top">
+        <Tooltip title="Input tokens (prompt processing)" placement="top">
           <IconButton size="small">
             <InfoIcon fontSize="small" />
           </IconButton>
@@ -301,7 +324,7 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
             Batch size: {modelSpecs.batchSize}
           </Typography>
           <Typography variant="caption">
-            Attention dimensions: N={modelSpecs.sequenceLength}, d={modelSpecs.headDimension || 128}
+            Attention dimensions: N={modelSpecs.promptTokens + modelSpecs.outputTokens}, d={modelSpecs.headDimension || 128}
           </Typography>
           <Typography variant="caption">
             Architecture: {modelSpecs.nLayers || 32} layers, {modelSpecs.nHeads || 32} heads, d_model={(modelSpecs.headDimension || 128) * (modelSpecs.nHeads || 32)}
@@ -311,6 +334,8 @@ export const ModelInputs: React.FC<ModelInputsProps> = ({ modelSpecs, onModelCha
           </Typography>
         </Box>
       </Paper>
+        </>
+      )}
     </Box>
   );
 };

@@ -3,6 +3,7 @@ export interface GPUSpecs {
   computeBandwidth: number; // TFLOPS
   memoryBandwidth: number; // GB/s
   memorySize: number; // GB
+  price?: number; // USD, optional
 }
 
 export interface ModelPreset {
@@ -12,6 +13,9 @@ export interface ModelPreset {
   headDimension: number;
   nLayers: number;
   nHeads: number;
+  nKvHeads?: number; // number of key-value heads (for grouped-query attention)
+  hiddenSize?: number; // hidden dimension size (d_model)
+  intermediateSize?: number; // intermediate size in feed-forward network
   defaultQuantization: QuantizationType;
   isFromHub?: boolean; // Flag to indicate if loaded from HF Hub
   hubUrl?: string; // URL to the model on HF Hub
@@ -27,11 +31,13 @@ export interface ModelSpecs {
   headDimension?: number; // d_head - dimension of a single attention head
   nLayers?: number; // number of transformer layers
   nHeads?: number; // number of attention heads (d_model = d_head * n_heads)
+  nKvHeads?: number; // number of key-value heads (for grouped-query attention)
+  hiddenSize?: number; // hidden dimension size (d_model)
+  intermediateSize?: number; // intermediate size in feed-forward network
 }
 
 export interface SystemOverhead {
-  prefillEfficiencyPercent: number; // efficiency for prefill time calculations in percentage (default: 100)
-  decodeEfficiencyPercent: number; // efficiency for decode/time-per-token calculations in percentage (default: 100)
+  systemEfficiencyPercent: number; // overall system efficiency in percentage (default: 100)
 }
 
 export type QuantizationType = 'FP32' | 'FP16' | 'INT8' | 'INT4';
@@ -48,11 +54,13 @@ export interface CalculationResults {
   arithmeticIntensity: number;
   isMemoryBound: boolean;
   isComputeBound: boolean;
-  prefillTime: number; // ms
-  timePerToken: number; // ms
+  prefillTime: number; // ms - time to first token
+  timePerToken: number; // ms - inter token latency
   totalGenerationTime: number; // ms
   throughputTokensPerSecond: number;
   modelSizeGB: number; // Model size in GB
+  systemOverheadGB: number; // Fixed system overhead in GB
+  activationMemoryGB: number; // PyTorch activation memory in GB
   memoryUtilization: number; // Percentage of GPU memory used
   hasMemoryWarning: boolean; // True if model doesn't fit in GPU memory
   memoryWarningMessage?: string; // Warning message if memory insufficient
@@ -60,7 +68,7 @@ export interface CalculationResults {
   freeMemoryForKVCacheGB: number; // Available memory for KV cache in GB
   maxKVCacheTokens: number; // Maximum tokens that can fit in KV cache
   maxBatchSize: number; // Maximum batch size based on available memory
-  totalMemoryUsedGB: number; // Total memory used (model + KV cache + overhead) in GB
+  totalMemoryUsedGB: number; // Total memory used (model + overhead + activation + KV cache) in GB
   currentKVCacheGB: number; // Current KV cache size for current batch and sequence length in GB
   hasPerformanceWarning: boolean; // True if throughput is too low
   performanceWarningMessage?: string; // Warning message for poor performance
@@ -107,6 +115,5 @@ export const DEFAULT_INFERENCE_PARAMS = {
 };
 
 export const DEFAULT_SYSTEM_OVERHEAD: SystemOverhead = {
-  prefillEfficiencyPercent: 80, // default efficiency for prefill time calculations
-  decodeEfficiencyPercent: 80, // default efficiency for decode time calculations
+  systemEfficiencyPercent: 80, // default overall system efficiency
 };

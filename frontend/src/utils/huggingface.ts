@@ -1,4 +1,5 @@
 import type { ModelPreset, QuantizationType } from '../types/calculator';
+import { downloadFile, listModels } from "@huggingface/hub";
 
 interface HuggingFaceConfig {
   architectures?: string[];
@@ -32,6 +33,9 @@ interface ModelInfo {
   likes?: number;
   library_name?: string;
   pipeline_tag?: string;
+  private?: boolean;
+  gated?: false | "auto" | "manual";
+  updatedAt?: Date | string;
   [key: string]: any;
 }
 
@@ -41,53 +45,47 @@ export interface HFModelSearchResult {
 }
 
 /**
- * Search for models on Hugging Face Hub
+ * Search for models on Hugging Face Hub using the official SDK
  */
 export async function searchModels(
   query: string = '',
   options: {
     limit?: number;
-    sort?: 'trending' | 'downloads' | 'likes' | 'updated';
-    direction?: -1 | 1;
     filter?: string;
-    full?: boolean;
   } = {}
 ): Promise<HFModelSearchResult> {
   try {
-    const searchParams = new URLSearchParams();
+    const models: ModelInfo[] = [];
     
-    if (query) {
-      searchParams.append('search', query);
-    }
+    // Convert filter option to task if it exists
+    const taskFilter = options.filter === 'text-generation' ? 'text-generation' : undefined;
     
-    searchParams.append('limit', (options.limit || 20).toString());
-    
-    if (options.sort) {
-      searchParams.append('sort', options.sort);
-    }
-    
-    if (options.direction) {
-      searchParams.append('direction', options.direction.toString());
-    }
-    
-    if (options.filter) {
-      searchParams.append('filter', options.filter);
-    }
-    
-    if (options.full) {
-      searchParams.append('full', 'true');
-    }
+    // Use the official SDK to list models
+    // The SDK returns models in an optimized order (likely by popularity/downloads)
+    const modelIterator = listModels({
+      search: {
+        query: query || undefined,
+        task: taskFilter,
+      },
+      limit: options.limit || 20,
+    });
 
-    const response = await fetch(`https://huggingface.co/api/models?${searchParams.toString()}`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to search models: ${response.statusText}`);
+    // Collect results from async generator
+    for await (const model of modelIterator) {
+      models.push({
+        id: model.name, // Use model.name (repository name) instead of model.id (internal hash)
+        tags: [], // Not directly available in the SDK response
+        downloads: model.downloads,
+        likes: model.likes,
+        pipeline_tag: model.task,
+        private: model.private,
+        gated: model.gated,
+        updatedAt: model.updatedAt
+      });
     }
-    
-    const models = await response.json();
     
     return {
-      models: models || []
+      models
     };
   } catch (error) {
     console.error('Error searching models:', error);
@@ -98,19 +96,20 @@ export async function searchModels(
 /**
  * Load model configuration from Hugging Face Hub
  */
-export async function loadModelConfig(modelId: string): Promise<HuggingFaceConfig> {
+export async function loadModelConfig(modelId: string, token?: string): Promise<HuggingFaceConfig> {
   try {
     // Direct URL to the config.json file on Hugging Face Hub
-    const configUrl = `https://huggingface.co/${modelId}/resolve/main/config.json`;
-
-    const response = await fetch(configUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch config for ${modelId}: ${response.statusText}`);
+    const response = await downloadFile({
+      repo: modelId,
+      path: "config.json",
+      raw: true,
+      ...(token && { accessToken: token })
+    })
+    if (!response) {
+      throw new Error(`Failed to fetch config for ${modelId}`);
     }
     
-    const config = await response.json();
-    return config;
+    return JSON.parse(await response.text());
   } catch (error) {
     console.error('Error loading model config:', error);
     throw new Error(`Failed to load configuration for model ${modelId}`);
@@ -120,30 +119,57 @@ export async function loadModelConfig(modelId: string): Promise<HuggingFaceConfi
 /**
  * Load model.safetensors.index.json which contains parameter count
  */
-export async function loadSafetensorsIndex(modelId: string): Promise<any> {
+interface SafetensorsIndex {
+  metadata?: {
+    total_size?: string;
+    num_params?: number;
+    total_params?: number;
+    parameters?: number;
+  };
+  safetensors?: {
+    parameters?: number;
+  };
+  pytorch_model?: {
+    parameters?: number;
+  };
+  transformersInfo?: {
+    parameters?: number;
+  };
+  [key: string]: unknown;
+}
+
+export async function loadSafetensorsIndex(modelId: string, token?: string): Promise<SafetensorsIndex | null> {
   try {
-    const indexUrl = `https://huggingface.co/${modelId}/resolve/main/model.safetensors.index.json`;
-    const response = await fetch(indexUrl);
-    
-    if (!response.ok) {
-      console.warn(`Could not fetch safetensors index for ${modelId}: ${response.statusText}`);
-      return null;
+    // Direct URL to the config.json file on Hugging Face Hub
+    const response = await downloadFile({
+      repo: modelId,
+      path: "model.safetensors.index.json",
+      raw: true,
+      ...(token && { accessToken: token })
+    })
+    if (!response) {
+      throw new Error(`Failed to fetch index for ${modelId}`);
     }
     
-    const safetensorsIndex = await response.json();
-    return safetensorsIndex;
+    return JSON.parse(await response.text());
   } catch (error) {
-    console.warn('Error loading safetensors index:', error);
-    return null;
+    console.error('Error loading model index:', error);
+    throw new Error(`Failed to load index for model ${modelId}`);
   }
 }
 
 /**
  * Load additional model information from Hugging Face Hub API
  */
-export async function loadModelInfo(modelId: string): Promise<any> {
+export async function loadModelInfo(modelId: string, token?: string): Promise<ModelInfo | null> {
   try {
-    const response = await fetch(`https://huggingface.co/api/models/${modelId}`);
+    const response = await fetch(`https://huggingface.co/api/models/${modelId}`, {
+      ...(token && {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+    });
     
     if (!response.ok) {
       // Don't throw error for API info, just return null
@@ -324,11 +350,23 @@ export function configToModelPreset(modelId: string, config: HuggingFaceConfig, 
   const sequenceLength = safeNumber(config.max_position_embeddings, 4096);
   const hiddenSize = safeNumber(config.hidden_size, 4096);
   const numAttentionHeads = safeNumber(config.num_attention_heads, 32);
+  const intermediateSize = safeNumber(config.intermediate_size, hiddenSize * 4); // Common ratio is 4x
+  const nKvHeads = safeNumber(config.num_key_value_heads, numAttentionHeads); // Default to nHeads if not specified
   
   const headDimension = hiddenSize / numAttentionHeads;
   const nLayers = safeNumber(config.num_hidden_layers, 32);
   const nHeads = numAttentionHeads;
   const defaultQuantization = getQuantizationFromTorchDtype(config);
+
+  console.log(`Loaded HF model ${modelId}:`, {
+    parameters: parameters.toFixed(2) + 'B',
+    hiddenSize,
+    intermediateSize,
+    nHeads,
+    nKvHeads,
+    nLayers,
+    headDimension: headDimension.toFixed(0)
+  });
 
   return {
     name: modelId,
@@ -337,6 +375,9 @@ export function configToModelPreset(modelId: string, config: HuggingFaceConfig, 
     headDimension,
     nLayers,
     nHeads,
+    nKvHeads,
+    hiddenSize,
+    intermediateSize,
     defaultQuantization,
   };
 }
@@ -344,13 +385,13 @@ export function configToModelPreset(modelId: string, config: HuggingFaceConfig, 
 /**
  * Load a model preset from Hugging Face Hub
  */
-export async function loadModelFromHub(modelId: string): Promise<ModelPreset> {
+export async function loadModelFromHub(modelId: string, token?: string): Promise<ModelPreset> {
   try {
     // Load config, safetensors index, and model info in parallel
     const [config, safetensorsIndex, modelInfo] = await Promise.all([
-      loadModelConfig(modelId),
-      loadSafetensorsIndex(modelId),
-      loadModelInfo(modelId)
+      loadModelConfig(modelId, token),
+      loadSafetensorsIndex(modelId, token),
+      loadModelInfo(modelId, token)
     ]);
     
     return configToModelPreset(modelId, config, safetensorsIndex, modelInfo);
